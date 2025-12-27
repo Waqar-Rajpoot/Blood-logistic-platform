@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
     bloodGroup: {
         type: String,
         enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
-        required: function() { return this.role === 'donor'; } // Required if donor
+        required: function() { return this.role === 'donor'; }
     },
     phoneNumber: {
         type: String,
