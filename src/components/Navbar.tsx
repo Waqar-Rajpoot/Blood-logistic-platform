@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Info, Droplets, Home, Menu, X } from "lucide-react";
+import { Info, Droplets, Home, Search, Menu, X } from "lucide-react";
 
 export default function PublicNavbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,6 +16,7 @@ export default function PublicNavbar() {
   const navLinks = [
     { name: "Home", href: "/", icon: <Home size={18} /> },
     { name: "About Us", href: "/about", icon: <Info size={18} /> },
+    { name: "Search", href: "/search", icon: <Search size={18} /> },
   ];
 
   return (

@@ -1,27 +1,16 @@
 // "use client";
 // import React, { useState, useEffect, useCallback, Suspense } from "react";
+// import { useSearchParams } from "next/navigation";
+// import { useSession } from "next-auth/react";
 // import { 
-//   MapPin, 
-//   Droplets, 
-//   Phone,
-//   Loader2,
-//   Search as SearchIcon,
-//   Navigation,
-//   User
+//   Search, MapPin, Phone, 
+//   Loader2, Navigation, Lock,
+//   HeartPulse, Activity, Crown, Trophy, Medal, Star,
+//   Globe,
 // } from "lucide-react";
 // import axios from "axios";
 // import toast from "react-hot-toast";
-// import dynamic from "next/dynamic";
 // import Link from "next/link";
-
-// const DonorMap = dynamic(() => import("@/components/Map"), { 
-//   ssr: false,
-//   loading: () => (
-//     <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-//         Initializing Map Engine...
-//     </div>
-//   )
-// });
 
 // interface Donor {
 //   _id: string;
@@ -30,689 +19,244 @@
 //   city: string;
 //   area: string;
 //   phoneNumber: string;
+//   isAvailable: boolean;
+//   points: number;
+//   lastDonationDate?: string;
 //   location: {
 //     coordinates: [number, number];
 //   };
 // }
 
-// export default function AdvancedSearchPage() {
-//   return (
-//     <Suspense fallback={
-//       <div className="flex items-center justify-center min-h-screen bg-white">
-//         <Loader2 className="animate-spin text-red-600" size={32} />
-//       </div>
-//     }>
-//       <AdvancedSearchContent />
-//     </Suspense>
-//   );
-// }
-
-// function AdvancedSearchContent() {
-//   const [donors, setDonors] = useState<Donor[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  
-//   // Search States
-//   const [bloodGroup, setBloodGroup] = useState("");
-//   const [areaSearch, setAreaSearch] = useState("");
-//   // --- NEW STATE FOR DEBOUNCE ---
-//   const [debouncedAreaSearch, setDebouncedAreaSearch] = useState("");
-  
-//   const [radius, setRadius] = useState("10");
-//   const [userLocation, setUserLocation] = useState<{lng: number, lat: number} | null>(null);
-
-//   // --- DEBOUNCE EFFECT ---
-//   // This effect updates debouncedAreaSearch only after 1 second of inactivity
-//   useEffect(() => {
-//     const handler = setTimeout(() => {
-//       setDebouncedAreaSearch(areaSearch);
-//     }, 1000);
-
-//     return () => {
-//       clearTimeout(handler);
+// const getDonorRank = (livesSaved: number) => {
+//   if (livesSaved >= 50) 
+//     return { 
+//       name: "Platinum", 
+//       color: "#f8fafc",
+//       bg: "linear-gradient(135deg, #334155 0%, #0f172a 100%)",
+//       border: "border-slate-400/30",
+//       icon: <Crown size={12} className="text-blue-400" />, 
+//       bonus: "Priority" 
 //     };
-//   }, [areaSearch]);
-
-//   const getBrowserLocation = () => {
-//     if (!navigator.geolocation) {
-//       toast.error("Geolocation is not supported by your browser");
-//       return;
-//     }
-//     toast.loading("Getting your location...", { id: "geo" });
-//     navigator.geolocation.getCurrentPosition(
-//       (pos) => {
-//         setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
-//         toast.success("Location acquired", { id: "geo" });
-//       },
-//       () => {
-//         toast.error("Location access denied.", { id: "geo" });
-//       }
-//     );
+//   if (livesSaved >= 20) 
+//     return { 
+//       name: "Gold", 
+//       color: "#451a03",
+//       bg: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)", 
+//       border: "border-yellow-400/50",
+//       icon: <Trophy size={12} className="text-amber-900" />, 
+//       bonus: "Premium" 
+//     };
+//   if (livesSaved >= 5) 
+//     return { 
+//       name: "Silver", 
+//       color: "#1e293b",
+//       bg: "linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)",
+//       border: "border-slate-300/50",
+//       icon: <Medal size={12} className="text-slate-700" />, 
+//       bonus: "Elite" 
+//     };
+//   return { 
+//     name: "Bronze", 
+//     color: "#ffffff",
+//     bg: "linear-gradient(135deg, #fca5a5 0%, #ef4444 100%)", 
+//     border: "border-red-400/40",
+//     icon: <Star size={12} className="text-white" />, 
+//     bonus: "Active" 
 //   };
+// };
 
-//   const fetchDonors = useCallback(async () => {
-//     try {
-//       setLoading(true);
-//       // Use the DEBOUNCED value here instead of the raw input value
-//       const params: any = { bloodGroup, area: debouncedAreaSearch };
-      
-//       if (userLocation) {
-//         params.lng = userLocation.lng;
-//         params.lat = userLocation.lat;
-//         params.radius = radius;
-//       }
+// const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+//   const R = 6371;
+//   const dLat = (lat2 - lat1) * (Math.PI / 180);
+//   const dLon = (lon2 - lon1) * (Math.PI / 180);
+//   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+//             Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+//   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+//   return R * c;
+// };
 
-//       const res = await axios.get(`/api/donors/search`, { params });
-      
-//       const sanitizedDonors = res.data.donors.map((d: any) => ({
-//         ...d,
-//         latitude: d.location?.coordinates[1],
-//         longitude: d.location?.coordinates[0]
-//       }));
-
-//       setDonors(sanitizedDonors || []);
-//     } catch (error: any) {
-//       toast.error(`Search failed: ${error.message}`);
-//     } finally {
-//       setLoading(false);
-//     }
-//     // Dependency changed from areaSearch to debouncedAreaSearch
-//   }, [bloodGroup, debouncedAreaSearch, radius, userLocation]);
-
-//   useEffect(() => {
-//     fetchDonors();
-//   }, [fetchDonors]);
-
+// export default function SearchPage() {
 //   return (
-//     <div className="flex flex-col h-[calc(100vh-64px)] bg-white">
-//       <div className="p-4 border-b bg-white shadow-sm z-10">
-//         <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-3">
-//           <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-//             <div className="relative">
-//               <Droplets className="absolute left-3 top-3 text-red-600" size={18} />
-//               <select 
-//                 value={bloodGroup}
-//                 onChange={(e) => setBloodGroup(e.target.value)}
-//                 className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none"
-//               >
-//                 <option value="">Any Blood Group</option>
-//                 {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(g => <option key={g} value={g}>{g}</option>)}
-//               </select>
-//             </div>
-
-//             <div className="relative">
-//               <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
-//               <input 
-//                 type="text" 
-//                 placeholder="City or Area name..." 
-//                 value={areaSearch}
-//                 onChange={(e) => setAreaSearch(e.target.value)}
-//                 className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium"
-//               />
-//             </div>
-
-//             <div className="flex gap-2">
-//               <div className="relative flex-1">
-//                 <Navigation className="absolute left-3 top-3 text-blue-500" size={18} />
-//                 <select 
-//                   value={radius}
-//                   onChange={(e) => setRadius(e.target.value)}
-//                   className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none"
-//                 >
-//                   <option value="5">Within 5 KM</option>
-//                   <option value="10">Within 10 KM</option>
-//                   <option value="20">Within 20 KM</option>
-//                   <option value="50">Within 50 KM</option>
-//                 </select>
-//               </div>
-//               <button 
-//                 onClick={getBrowserLocation}
-//                 className={`p-2.5 rounded-xl border transition-all ${userLocation ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}
-//               >
-//                 <Navigation size={20} fill={userLocation ? "currentColor" : "none"} />
-//               </button>
-//             </div>
-//           </div>
-
-//           <button 
-//             onClick={fetchDonors}
-//             className="bg-red-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 transition-all"
-//           >
-//             <SearchIcon size={18} /> Search
-//           </button>
-//         </div>
-//       </div>
-
-//       <div className="flex flex-1 overflow-hidden">
-//         <div className={`w-full md:w-96 border-r overflow-y-auto bg-gray-50 p-4 space-y-4 ${viewMode === 'map' ? 'hidden md:block' : 'block'}`}>
-//           <div className="flex items-center justify-between mb-4 px-2">
-//             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-//               {loading ? "Searching..." : `Donors Nearby (${donors.length})`}
-//             </p>
-//             <div className="flex bg-gray-200 rounded-lg p-1">
-//                <button onClick={() => setViewMode("list")} className={`px-3 py-1 rounded-md text-[10px] font-black uppercase ${viewMode === 'list' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>List</button>
-//                <button onClick={() => setViewMode("map")} className={`px-3 py-1 rounded-md text-[10px] font-black uppercase ${viewMode === 'map' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>Map</button>
-//             </div>
-//           </div>
-
-//           {donors.map((donor) => (
-//             <div key={donor._id} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 hover:border-red-300 transition-all">
-//               <div className="flex justify-between items-start mb-4">
-//                 <div className="bg-red-50 px-3 py-1 rounded-xl text-red-600 font-black text-lg">{donor.bloodGroup}</div>
-//                 <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded-lg font-black uppercase">Verified</span>
-//               </div>
-//               <h4 className="font-black text-gray-800 text-lg leading-tight">{donor.username}</h4>
-//               <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1">
-//                 <MapPin size={12} className="text-red-400" /> {donor.area}, {donor.city}
-//               </p>
-
-//               <div className="mt-5 flex gap-2">
-//                 <a href={`tel:${donor.phoneNumber}`} className="flex-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2">
-//                   <Phone size={14} /> Call
-//                 </a>
-//                 <Link 
-//                   href={`/donors/${donor._id}`}
-//                   className="flex-1 bg-gray-100 text-center text-gray-700 text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2 hover:bg-gray-200"
-//                 >
-//                   <User size={14} /> Profile
-//                 </Link>
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-
-//         <div className={`flex-1 relative ${viewMode === 'list' ? 'hidden md:block' : 'block'}`}>
-//             <DonorMap donors={donors} center={userLocation ? [userLocation.lat, userLocation.lng] : undefined} />
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-// "use client";
-// import React, { useState, useEffect, useCallback, Suspense, useMemo } from "react";
-// import { 
-//   MapPin, 
-//   Droplets, 
-//   Phone,
-//   Loader2,
-//   Search as SearchIcon,
-//   Navigation,
-//   User,
-//   LayoutList,
-//   Map as MapIcon
-// } from "lucide-react";
-// import axios from "axios";
-// import toast from "react-hot-toast";
-// import dynamic from "next/dynamic";
-// import Link from "next/link";
-
-// const DonorMap = dynamic(() => import("@/components/Map"), { 
-//   ssr: false,
-//   loading: () => (
-//     <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-//         Initializing Map Engine...
-//     </div>
-//   )
-// });
-
-// interface Donor {
-//   _id: string;
-//   username: string;
-//   bloodGroup: string;
-//   city: string;
-//   area: string;
-//   phoneNumber: string;
-//   location: {
-//     coordinates: [number, number];
-//   };
-//   latitude?: number;
-//   longitude?: number;
-// }
-
-// export default function AdvancedSearchPage() {
-//   return (
-//     <Suspense fallback={
-//       <div className="flex items-center justify-center min-h-screen bg-white">
-//         <Loader2 className="animate-spin text-red-600" size={32} />
-//       </div>
-//     }>
-//       <AdvancedSearchContent />
+//     <Suspense fallback={<SearchLoading />}>
+//       <SearchContent />
 //     </Suspense>
 //   );
 // }
 
-// function AdvancedSearchContent() {
+// function SearchLoading() {
+//   return (
+//     <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfcfd]">
+//       <div className="relative">
+//         <div className="w-20 h-20 border-4 border-red-100 border-t-red-600 rounded-full animate-spin"></div>
+//         <HeartPulse className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600" size={24} />
+//       </div>
+//       <p className="mt-6 text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Scanning Database...</p>
+//     </div>
+//   );
+// }
+
+// function SearchContent() {
+//   const { data: session } = useSession();
+//   const searchParams = useSearchParams();
 //   const [donors, setDonors] = useState<Donor[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  
-//   const [bloodGroup, setBloodGroup] = useState("");
-//   const [areaSearch, setAreaSearch] = useState("");
-//   const [debouncedAreaSearch, setDebouncedAreaSearch] = useState("");
-//   const [radius, setRadius] = useState("10");
-//   const [userLocation, setUserLocation] = useState<{lng: number, lat: number} | null>(null);
-
-//   // Debounce logic for city search
-//   useEffect(() => {
-//     const handler = setTimeout(() => {
-//       setDebouncedAreaSearch(areaSearch);
-//     }, 1000);
-//     return () => clearTimeout(handler);
-//   }, [areaSearch]);
-
-//   const getBrowserLocation = () => {
-//     if (!navigator.geolocation) {
-//       toast.error("Geolocation is not supported");
-//       return;
-//     }
-//     toast.loading("Getting location...", { id: "geo" });
-//     navigator.geolocation.getCurrentPosition(
-//       (pos) => {
-//         setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
-//         toast.success("Location acquired", { id: "geo" });
-//       },
-//       () => toast.error("Location denied.", { id: "geo" })
-//     );
-//   };
+//   const [loading, setLoading] = useState(false);
+//   const [filters, setFilters] = useState({
+//     bloodGroup: searchParams.get("bloodGroup") || "",
+//     city: searchParams.get("city") || "",
+//   });
 
 //   const fetchDonors = useCallback(async () => {
 //     try {
 //       setLoading(true);
-//       const params: any = { bloodGroup, area: debouncedAreaSearch };
-      
-//       if (userLocation) {
-//         params.lng = userLocation.lng;
-//         params.lat = userLocation.lat;
-//         params.radius = radius;
-//       }
+//       const params = new URLSearchParams();
+//       if (filters.bloodGroup) params.append("bloodGroup", filters.bloodGroup);
+//       if (filters.city) params.append("city", filters.city);
 
-//       const res = await axios.get(`/api/donors/search`, { params });
-      
-//       const sanitizedDonors = res.data.donors.map((d: any) => ({
-//         ...d,
-//         latitude: d.location?.coordinates[1],
-//         longitude: d.location?.coordinates[0]
-//       }));
-
-//       setDonors(sanitizedDonors || []);
+//       const response = await axios.get(`/api/donors/search?${params.toString()}`);
+//       setDonors(response.data.donors || []);
 //     } catch (error: any) {
-//       toast.error(`Search failed: ${error.message}`);
+//       toast.error(`${error.response?.data?.error || "Failed to fetch donors"}`);
 //     } finally {
 //       setLoading(false);
 //     }
-//   }, [bloodGroup, debouncedAreaSearch, radius, userLocation]);
+//   }, [filters]);
 
-//   useEffect(() => {
-//     fetchDonors();
-//   }, [fetchDonors]);
-
-//   // Determine the map center dynamically
-//   const dynamicCenter = useMemo((): [number, number] => {
-//     if (donors.length > 0 && donors[0].latitude) {
-//       return [donors[0].latitude, donors[0].longitude!];
-//     }
-//     if (userLocation) {
-//       return [userLocation.lat, userLocation.lng];
-//     }
-//     return [31.5204, 74.3587]; // Lahore default
-//   }, [donors, userLocation]);
+//   useEffect(() => { fetchDonors(); }, [fetchDonors]);
 
 //   return (
-//     <div className="flex flex-col h-[calc(100vh-64px)] bg-white overflow-hidden">
-//       {/* Top Search Bar */}
-//       <div className="p-4 border-b bg-white shadow-sm z-20">
-//         <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-3">
-//           <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-//             <div className="relative">
-//               <Droplets className="absolute left-3 top-3 text-red-600" size={18} />
-//               <select 
-//                 value={bloodGroup}
-//                 onChange={(e) => setBloodGroup(e.target.value)}
-//                 className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none"
-//               >
+//     <div className="min-h-screen bg-[#fcfcfd] pb-20">
+//       <div className="relative z-10 max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        
+//         {/* Header */}
+//         <div className="text-center mb-12">
+//           <h1 className="text-5xl font-black text-slate-900 mb-4">Find Your Match</h1>
+//           <p className="text-slate-500">Helping you find the nearest blood donor in seconds.</p>
+//         </div>
+
+//         {/* Filter Bar */}
+//         <div className="sticky top-6 z-50 mb-16 max-w-4xl mx-auto bg-slate-900 p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-3">
+//             <select 
+//                 className="flex-1 px-6 py-4 bg-slate-800 border-none rounded-2xl text-white font-bold outline-none"
+//                 value={filters.bloodGroup}
+//                 onChange={(e) => setFilters({...filters, bloodGroup: e.target.value})}
+//             >
 //                 <option value="">Any Blood Group</option>
 //                 {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(g => <option key={g} value={g}>{g}</option>)}
-//               </select>
-//             </div>
-
-//             <div className="relative">
-//               <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
-//               <input 
+//             </select>
+//             <input 
 //                 type="text" 
-//                 placeholder="City or Area..." 
-//                 value={areaSearch}
-//                 onChange={(e) => setAreaSearch(e.target.value)}
-//                 className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium"
-//               />
-//             </div>
-
-//             <div className="flex gap-2">
-//               <div className="relative flex-1">
-//                 <Navigation className="absolute left-3 top-3 text-blue-500" size={18} />
-//                 <select value={radius} onChange={(e) => setRadius(e.target.value)} className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none">
-//                   <option value="10">10 KM</option>
-//                   <option value="20">20 KM</option>
-//                   <option value="50">50 KM</option>
-//                 </select>
-//               </div>
-//               <button onClick={getBrowserLocation} className={`p-2.5 rounded-xl border transition-all ${userLocation ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-//                 <Navigation size={20} fill={userLocation ? "currentColor" : "none"} />
-//               </button>
-//             </div>
-//           </div>
-//           <button onClick={fetchDonors} className="bg-red-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700">
-//             <SearchIcon size={18} /> Search
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Content Area */}
-//       <div className="flex flex-1 overflow-hidden relative">
-//         {/* Sidebar */}
-//         <div className={`w-full md:w-96 border-r overflow-y-auto bg-gray-50 p-4 space-y-4 ${viewMode === 'map' ? 'hidden md:block' : 'block'}`}>
-//           <div className="flex items-center justify-between mb-4">
-//             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-//               {loading ? "Searching..." : `Donors (${donors.length})`}
-//             </p>
-//             <div className="flex bg-gray-200 rounded-lg p-1">
-//                <button onClick={() => setViewMode("list")} className={`px-3 py-1 rounded-md text-[10px] font-black ${viewMode === 'list' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>List</button>
-//                <button onClick={() => setViewMode("map")} className={`px-3 py-1 rounded-md text-[10px] font-black ${viewMode === 'map' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>Map</button>
-//             </div>
-//           </div>
-
-//           {donors.map((donor) => (
-//             <div key={donor._id} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 hover:border-red-300 transition-all">
-//               <div className="flex justify-between items-start mb-4">
-//                 <div className="bg-red-50 px-3 py-1 rounded-xl text-red-600 font-black text-lg">{donor.bloodGroup}</div>
-//                 <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded-lg font-black uppercase">Verified</span>
-//               </div>
-//               <h4 className="font-black text-gray-800 text-lg leading-tight">{donor.username}</h4>
-//               <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1">
-//                 <MapPin size={12} className="text-red-400" /> {donor.area}, {donor.city}
-//               </p>
-//               <div className="mt-5 flex gap-2">
-//                 <a href={`tel:${donor.phoneNumber}`} className="flex-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2">
-//                   <Phone size={14} /> Call
-//                 </a>
-//                 <Link href={`/donors/${donor._id}`} className="flex-1 bg-gray-100 text-gray-700 text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2">
-//                   <User size={14} /> Profile
-//                 </Link>
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-
-//         {/* Map */}
-//         <div className={`flex-1 relative ${viewMode === 'list' ? 'hidden md:block' : 'block'}`}>
-//             <DonorMap donors={donors} center={dynamicCenter} />
-            
-//             {/* Mobile View Toggle */}
-//             <button 
-//               onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-//               className="md:hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 font-bold uppercase text-xs"
-//             >
-//               {viewMode === 'list' ? <><MapIcon size={18}/> View Map</> : <><LayoutList size={18}/> View List</>}
+//                 placeholder="City or Area..."
+//                 className="flex-1 px-6 py-4 bg-slate-800 border-none rounded-2xl text-white font-bold outline-none"
+//                 value={filters.city}
+//                 onChange={(e) => setFilters({...filters, city: e.target.value})}
+//             />
+//             <button onClick={fetchDonors} className="bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl font-black">
+//                 {loading ? <Loader2 className="animate-spin" /> : <Search />}
 //             </button>
 //         </div>
-//       </div>
-//     </div>
-//   );
-// }
 
-
-
-
-
-
-
-
-// "use client";
-// import React, { useState, useEffect, useCallback, Suspense, useMemo } from "react";
-// import { 
-//   MapPin, 
-//   Droplets, 
-//   Phone,
-//   Loader2,
-//   Search as SearchIcon,
-//   Navigation,
-//   User,
-//   LayoutList,
-//   Map as MapIcon
-// } from "lucide-react";
-// import axios from "axios";
-// import toast from "react-hot-toast";
-// import dynamic from "next/dynamic";
-// import Link from "next/link";
-
-// // Dynamic import is essential to prevent "window is not defined" errors with Leaflet
-// const DonorMap = dynamic(() => import("@/components/Map"), { 
-//   ssr: false,
-//   loading: () => (
-//     <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-//         Initializing Map Engine...
-//     </div>
-//   )
-// });
-
-// interface Donor {
-//   _id: string;
-//   username: string;
-//   bloodGroup: string;
-//   city: string;
-//   area: string;
-//   phoneNumber: string;
-//   location: {
-//     coordinates: [number, number]; // [longitude, latitude] from MongoDB
-//   };
-//   latitude?: number;
-//   longitude?: number;
-// }
-
-// export default function AdvancedSearchPage() {
-//   return (
-//     <Suspense fallback={
-//       <div className="flex items-center justify-center min-h-screen bg-white">
-//         <Loader2 className="animate-spin text-red-600" size={32} />
-//       </div>
-//     }>
-//       <AdvancedSearchContent />
-//     </Suspense>
-//   );
-// }
-
-// function AdvancedSearchContent() {
-//   const [donors, setDonors] = useState<Donor[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  
-//   const [bloodGroup, setBloodGroup] = useState("");
-//   const [areaSearch, setAreaSearch] = useState("");
-//   const [debouncedAreaSearch, setDebouncedAreaSearch] = useState("");
-//   const [radius, setRadius] = useState("10");
-//   const [userLocation, setUserLocation] = useState<{lng: number, lat: number} | null>(null);
-
-//   // Debounce logic for city search to prevent too many API calls while typing
-//   useEffect(() => {
-//     const handler = setTimeout(() => {
-//       setDebouncedAreaSearch(areaSearch);
-//     }, 800);
-//     return () => clearTimeout(handler);
-//   }, [areaSearch]);
-
-//   const getBrowserLocation = () => {
-//     if (!navigator.geolocation) {
-//       toast.error("Geolocation is not supported");
-//       return;
-//     }
-//     toast.loading("Getting location...", { id: "geo" });
-//     navigator.geolocation.getCurrentPosition(
-//       (pos) => {
-//         setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
-//         toast.success("Location acquired", { id: "geo" });
-//       },
-//       () => toast.error("Location access denied.", { id: "geo" })
-//     );
-//   };
-
-//   const fetchDonors = useCallback(async () => {
-//     try {
-//       setLoading(true);
-//       const params: any = { bloodGroup, area: debouncedAreaSearch };
-      
-//       if (userLocation) {
-//         params.lng = userLocation.lng;
-//         params.lat = userLocation.lat;
-//         params.radius = radius;
-//       }
-
-//       const res = await axios.get(`/api/donors/search`, { params });
-      
-//       // FIX: Explicitly extract and reverse coordinates for Leaflet
-//       const sanitizedDonors = res.data.donors.map((d: any) => ({
-//         ...d,
-//         // MongoDB stores [lng, lat]. We map them to flat props for easy Map access
-//         latitude: d.location?.coordinates[1],
-//         longitude: d.location?.coordinates[0]
-//       }));
-
-//       setDonors(sanitizedDonors || []);
-//     } catch (error: any) {
-//       console.error("Search Error:", error);
-//       toast.error(`Search failed: ${error.message}`);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [bloodGroup, debouncedAreaSearch, radius, userLocation]);
-
-//   useEffect(() => {
-//     fetchDonors();
-//   }, [fetchDonors]);
-
-//   // Determine the map center dynamically based on results
-//   const dynamicCenter = useMemo((): [number, number] => {
-//     if (donors.length > 0 && donors[0].latitude && donors[0].longitude) {
-//       return [donors[0].latitude, donors[0].longitude];
-//     }
-//     if (userLocation) {
-//       return [userLocation.lat, userLocation.lng];
-//     }
-//     return [31.5204, 74.3587]; // Fallback to Lahore
-//   }, [donors, userLocation]);
-
-//   return (
-//     <div className="flex flex-col h-[calc(100vh-64px)] bg-white overflow-hidden">
-//       {/* Search Header - Mobile Responsive */}
-//       <div className="p-3 md:p-4 border-b bg-white shadow-sm z-20">
-//         <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-3">
-//           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
-//             <div className="relative">
-//               <Droplets className="absolute left-3 top-3 text-red-600" size={18} />
-//               <select 
-//                 value={bloodGroup}
-//                 onChange={(e) => setBloodGroup(e.target.value)}
-//                 className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none text-sm"
-//               >
-//                 <option value="">Any Blood Group</option>
-//                 {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(g => <option key={g} value={g}>{g}</option>)}
-//               </select>
-//             </div>
-
-//             <div className="relative">
-//               <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
-//               <input 
-//                 type="text" 
-//                 placeholder="Search Sahiwal, Lahore..." 
-//                 value={areaSearch}
-//                 onChange={(e) => setAreaSearch(e.target.value)}
-//                 className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium text-sm"
-//               />
-//             </div>
-
-//             <div className="flex gap-2">
-//               <div className="relative flex-1">
-//                 <Navigation className="absolute left-3 top-3 text-blue-500" size={18} />
-//                 <select value={radius} onChange={(e) => setRadius(e.target.value)} className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none text-sm">
-//                   <option value="10">10 KM Radius</option>
-//                   <option value="20">20 KM Radius</option>
-//                   <option value="50">50 KM Radius</option>
-//                 </select>
-//               </div>
-//               <button onClick={getBrowserLocation} className={`p-2.5 rounded-xl border transition-all ${userLocation ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-//                 <Navigation size={20} fill={userLocation ? "currentColor" : "none"} />
-//               </button>
-//             </div>
-//           </div>
-//           <button onClick={fetchDonors} className="bg-red-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition-transform">
-//             <SearchIcon size={18} /> Search Donors
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Main Viewport */}
-//       <div className="flex flex-1 overflow-hidden relative">
-//         {/* Sidebar - Hidden on mobile when map is active */}
-//         <div className={`w-full md:w-96 border-r overflow-y-auto bg-gray-50 p-4 space-y-4 transition-all duration-300 ${viewMode === 'map' ? 'hidden md:block' : 'block'}`}>
-//           <div className="flex items-center justify-between mb-2 px-1">
-//             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-//               {loading ? "Refreshing..." : `Results Found: ${donors.length}`}
-//             </p>
-//             <div className="hidden md:flex bg-gray-200 rounded-lg p-1">
-//                <button onClick={() => setViewMode("list")} className={`px-3 py-1 rounded-md text-[10px] font-black ${viewMode === 'list' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>List</button>
-//                <button onClick={() => setViewMode("map")} className={`px-3 py-1 rounded-md text-[10px] font-black ${viewMode === 'map' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>Map</button>
-//             </div>
-//           </div>
-
-//           {donors.length === 0 && !loading && (
-//             <div className="text-center py-20 text-gray-400">
-//               <MapPin size={40} className="mx-auto mb-2 opacity-20" />
-//               <p className="font-bold">No donors found in this area</p>
-//             </div>
-//           )}
-
-//           {donors.map((donor) => (
-//             <div key={donor._id} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 hover:border-red-200 transition-all cursor-default">
-//               <div className="flex justify-between items-start mb-4">
-//                 <div className="bg-red-50 px-3 py-1 rounded-xl text-red-600 font-black text-lg">{donor.bloodGroup}</div>
-//                 <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded-lg font-black uppercase">Active</span>
-//               </div>
-//               <h4 className="font-black text-gray-800 text-lg leading-tight">{donor.username}</h4>
-//               <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1">
-//                 <MapPin size={12} className="text-red-400" /> {donor.area}, {donor.city}
-//               </p>
-//               <div className="mt-5 flex gap-2">
-//                 <a href={`tel:${donor.phoneNumber}`} className="flex-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2 hover:bg-black">
-//                   <Phone size={14} /> Call
-//                 </a>
-//                 <Link href={`/donors/${donor._id}`} className="flex-1 bg-gray-100 text-gray-700 text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2 hover:bg-gray-200">
-//                   <User size={14} /> Profile
-//                 </Link>
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-
-//         {/* Map Container - Hidden on mobile when list is active */}
-//         <div className={`flex-1 relative h-full ${viewMode === 'list' ? 'hidden md:block' : 'block'}`}>
-//             <DonorMap donors={donors} center={dynamicCenter} />
+//         {/* Results */}
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+//           {donors.map((donor) => {
+//             const rank = getDonorRank(donor.points || 0);
             
-//             {/* Mobile View Toggle - Floating Button */}
-//             <button 
-//               onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-//               className="md:hidden absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] bg-red-600 text-white px-8 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-black uppercase text-xs tracking-widest active:scale-90 transition-transform"
-//             >
-//               {viewMode === 'list' ? <><MapIcon size={18}/> View Map</> : <><LayoutList size={18}/> View List</>}
-//             </button>
+//             // Distance Logic
+//             const receiverCoords = session?.user?.location?.coordinates;
+//             const donorCoords = donor.location?.coordinates;
+//             let distance = null;
+
+//             if (receiverCoords && donorCoords) {
+//                 // MongoDB: [longitude, latitude]
+//                 distance = calculateDistance(
+//                     receiverCoords[1], receiverCoords[0],
+//                     donorCoords[1], donorCoords[0]
+//                 ).toFixed(1);
+//             }
+
+//             return (
+//               <div key={donor._id} className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-xl hover:border-red-200 transition-all flex flex-col">
+//                 <div className="flex justify-between items-center mb-6">
+//                   {/* Status Badge */}
+//                   <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-black uppercase tracking-tighter ${donor.isAvailable ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+//                     <Activity size={14} className={donor.isAvailable ? 'animate-pulse' : ''} />
+//                     {donor.isAvailable ? 'Ready' : 'On Break'}
+//                   </div>
+
+//                   {/* Rank Badge */}
+//                   <div 
+//                     style={{ background: rank.bg, color: rank.color }} 
+//                     className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase border ${rank.border}`}
+//                   >
+//                     {rank.icon} {rank.name}
+//                   </div>
+//                 </div>
+
+//                 <div className="flex items-center gap-4 mb-6">
+//                   <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center text-white text-xl font-black">
+//                     {donor.bloodGroup}
+//                   </div>
+//                   <div className="flex-1">
+//                     <h3 className="font-black text-slate-900 uppercase truncate">{donor.username}</h3>
+//                     <div className="flex items-center gap-1 text-slate-600 text-sm">
+//                       <MapPin size={12} /> {donor.city}
+//                       <div className="w-1 h-1 rounded-full bg-slate-600" />
+//                       <Globe size={12} /> {donor.area}
+//                     </div>
+//                   </div>
+//                 </div>
+
+//                 {/* Distance Indicator */}
+//                 <div className="mb-6">
+//                     {distance ? (
+//                         <div className="flex items-center gap-2 text-blue-600 font-black text-sm bg-blue-100 p-3 rounded-xl border border-blue-100">
+//                             <Navigation size={14} fill="currentColor" />
+//                             {distance} KM away from you
+//                         </div>
+//                     ) : (
+//                         <div className="text-[10px] text-slate-400 italic bg-slate-50 p-2 rounded-lg text-center">
+//                             {session ? "Location coordinates missing" : "Login to see distance"}
+//                         </div>
+//                     )}
+//                 </div>
+
+//                 <div className="grid grid-cols-2 gap-3 mb-6 text-center">
+//                     <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+//                         <p className="text-[12px] uppercase font-bold text-slate-600">Phone</p>
+
+//                         <div className="flex items-center justify-center gap-1">
+//                         <Phone size={14} />
+//                         <p className="text-sm font-black text-slate-600">{donor.phoneNumber || "-"}</p>
+//                         </div>
+//                     </div>
+//                     <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+//                         <p className="text-[12px] uppercase font-bold text-slate-600">Benefit</p>
+//                         <p className="text-sm font-black text-red-600">{rank.bonus}</p>
+//                     </div>
+//                 </div>
+
+//                 {session ? (
+//                   <a 
+//                     href={donor.isAvailable ? `tel:${donor.phoneNumber}` : "#"} 
+//                     className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 ${donor.isAvailable ? 'bg-slate-900 text-white hover:bg-red-600 shadow-lg transition-all' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+//                   >
+//                     <Phone size={14} /> {donor.isAvailable ? 'Contact Donor' : 'Unavailable'}
+//                   </a>
+//                 ) : (
+//                   <Link href="/login" className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs text-center flex items-center justify-center gap-2">
+//                     <Lock size={14} /> Login to Call
+//                   </Link>
+//                 )}
+//               </div>
+//             );
+//           })}
 //         </div>
 //       </div>
 //     </div>
 //   );
 // }
+
+
+
 
 
 
@@ -720,31 +264,18 @@
 
 
 "use client";
-import React, { useState, useEffect, useCallback, Suspense, useMemo } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { 
-  MapPin, 
-  Droplets, 
-  Phone,
-  Loader2,
-  Search as SearchIcon,
-  Navigation,
-  User,
-  LayoutList,
-  Map as MapIcon
+  Search, MapPin, Phone, 
+  Loader2, Navigation, Lock,
+  HeartPulse, Activity, Crown, Trophy, Medal, Star,
+  Globe, ChevronLeft, ChevronRight
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import dynamic from "next/dynamic";
 import Link from "next/link";
-
-const DonorMap = dynamic(() => import("@/components/Map"), { 
-  ssr: false,
-  loading: () => (
-    <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-        Initializing Map Engine...
-    </div>
-  )
-});
 
 interface Donor {
   _id: string;
@@ -753,228 +284,290 @@ interface Donor {
   city: string;
   area: string;
   phoneNumber: string;
+  isAvailable: boolean;
+  points: number;
+  lastDonationDate?: string;
   location: {
     coordinates: [number, number];
   };
-  latitude?: number;
-  longitude?: number;
 }
 
-export default function AdvancedSearchPage() {
+const getDonorRank = (livesSaved: number) => {
+  if (livesSaved >= 50) 
+    return { 
+      name: "Platinum", 
+      color: "#f8fafc",
+      bg: "linear-gradient(135deg, #334155 0%, #0f172a 100%)",
+      border: "border-slate-400/30",
+      icon: <Crown size={12} className="text-blue-400" />, 
+      bonus: "Priority" 
+    };
+  if (livesSaved >= 20) 
+    return { 
+      name: "Gold", 
+      color: "#451a03",
+      bg: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)", 
+      border: "border-yellow-400/50",
+      icon: <Trophy size={12} className="text-amber-900" />, 
+      bonus: "Premium" 
+    };
+  if (livesSaved >= 5) 
+    return { 
+      name: "Silver", 
+      color: "#1e293b",
+      bg: "linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%)",
+      border: "border-slate-300/50",
+      icon: <Medal size={12} className="text-slate-700" />, 
+      bonus: "Elite" 
+    };
+  return { 
+    name: "Bronze", 
+    color: "#ffffff",
+    bg: "linear-gradient(135deg, #fca5a5 0%, #ef4444 100%)", 
+    border: "border-red-400/40",
+    icon: <Star size={12} className="text-white" />, 
+    bonus: "Active" 
+  };
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// --- FIX 1: Add Loading component ---
+function SearchLoading() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <Loader2 className="animate-spin text-red-600" size={32} />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#fcfcfd]">
+      <div className="relative">
+        <div className="w-20 h-20 border-4 border-red-100 border-t-red-600 rounded-full animate-spin"></div>
+        <HeartPulse className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-600" size={24} />
       </div>
-    }>
-      <AdvancedSearchContent />
+      <p className="mt-6 text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">Scanning Database...</p>
+    </div>
+  );
+}
+
+// --- FIX 2: Default export wrapper ---
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchLoading />}>
+      <SearchContent />
     </Suspense>
   );
 }
 
-function AdvancedSearchContent() {
+function SearchContent() {
+  const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const [donors, setDonors] = useState<Donor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [loading, setLoading] = useState(false);
   
-  const [bloodGroup, setBloodGroup] = useState("");
-  const [areaSearch, setAreaSearch] = useState("");
-  const [debouncedAreaSearch, setDebouncedAreaSearch] = useState("");
-  const [radius, setRadius] = useState("10");
-  const [userLocation, setUserLocation] = useState<{lng: number, lat: number} | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedAreaSearch(areaSearch);
-    }, 800);
-    return () => clearTimeout(handler);
-  }, [areaSearch]);
+  const [filters, setFilters] = useState({
+    bloodGroup: searchParams.get("bloodGroup") || "",
+    city: searchParams.get("city") || "",
+  });
 
-  const getBrowserLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported");
-      return;
-    }
-    toast.loading("Getting location...", { id: "geo" });
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({ lng: pos.coords.longitude, lat: pos.coords.latitude });
-        toast.success("Location acquired", { id: "geo" });
-      },
-      () => toast.error("Location access denied.", { id: "geo" })
-    );
-  };
+  const bloodGroups = ["All", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
   const fetchDonors = useCallback(async () => {
     try {
       setLoading(true);
-      const params: any = { bloodGroup, area: debouncedAreaSearch };
-      
-      if (userLocation) {
-        params.lng = userLocation.lng;
-        params.lat = userLocation.lat;
-        params.radius = radius;
+      const params = new URLSearchParams();
+      if (filters.bloodGroup && filters.bloodGroup !== "All") {
+        params.append("bloodGroup", filters.bloodGroup);
       }
+      if (filters.city) params.append("city", filters.city);
 
-      const res = await axios.get(`/api/donors/search`, { params });
-      
-      const sanitizedDonors = res.data.donors.map((d: any) => ({
-        ...d,
-        latitude: d.location?.coordinates[1],
-        longitude: d.location?.coordinates[0]
-      }));
-
-      setDonors(sanitizedDonors || []);
+      const response = await axios.get(`/api/donors/search?${params.toString()}`);
+      setDonors(response.data.donors || []);
+      setCurrentPage(1);
     } catch (error: any) {
-      console.error("Search Error:", error);
-      toast.error(`Search failed: ${error.message}`);
+      toast.error(`${error.response?.data?.error || "Failed to fetch donors"}`);
     } finally {
       setLoading(false);
     }
-  }, [bloodGroup, debouncedAreaSearch, radius, userLocation]);
+  }, [filters]);
 
-  useEffect(() => {
-    fetchDonors();
-  }, [fetchDonors]);
+  useEffect(() => { fetchDonors(); }, [fetchDonors]);
 
-  const dynamicCenter = useMemo((): [number, number] => {
-    if (donors.length > 0 && donors[0].latitude && donors[0].longitude) {
-      return [donors[0].latitude, donors[0].longitude];
-    }
-    if (userLocation) {
-      return [userLocation.lat, userLocation.lng];
-    }
-    return [31.5204, 74.3587]; 
-  }, [donors, userLocation]);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentDonors = donors.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(donors.length / itemsPerPage);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-white overflow-hidden w-full max-w-[100vw]">
-      {/* Search Header */}
-      <div className="p-3 md:p-4 border-b bg-white shadow-sm z-30 w-full">
-        <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-2 md:gap-3">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
-            
-            {/* Blood Group Select Container */}
-            <div className="relative w-full group">
-              <Droplets className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 pointer-events-none z-10" size={18} />
-              <select 
-                value={bloodGroup}
-                onChange={(e) => setBloodGroup(e.target.value)}
-                className="w-full pl-10 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none text-[16px] sm:text-sm focus:border-red-300 transition-all truncate"
-                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-              >
-                <option value="">Blood Group</option>
-                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none border-l pl-2 border-gray-200">
-                <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-gray-400"></div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#fcfcfd] pb-20">
+      <div className="relative z-10 max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-black text-slate-900 mb-4">Find Your Match</h1>
+          <p className="text-slate-500">Helping you find the nearest blood donor in seconds.</p>
+        </div>
 
-            {/* Area Search Input */}
-            <div className="relative w-full">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" size={18} />
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {bloodGroups.map((group) => (
+            <button
+              key={group}
+              onClick={() => setFilters({ ...filters, bloodGroup: group === "All" ? "" : group })}
+              className={`px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${
+                (filters.bloodGroup === group || (group === "All" && !filters.bloodGroup))
+                  ? "bg-red-600 text-white shadow-lg shadow-red-200 scale-105"
+                  : "bg-white text-slate-600 border border-slate-200 hover:border-red-300"
+              }`}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
+
+        <div className="sticky top-6 z-50 mb-16 max-w-2xl mx-auto bg-slate-900 p-3 rounded-3xl shadow-2xl flex gap-3">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
-                type="text" 
-                placeholder="City or Area..." 
-                value={areaSearch}
-                onChange={(e) => setAreaSearch(e.target.value)}
-                className="w-full pl-10 p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium text-[16px] sm:text-sm focus:border-red-300 transition-all"
+                  type="text" 
+                  placeholder="Search by City or Area..."
+                  className="w-full pl-12 pr-6 py-4 bg-slate-800 border-none rounded-2xl text-white font-bold outline-none"
+                  value={filters.city}
+                  onChange={(e) => setFilters({...filters, city: e.target.value})}
               />
             </div>
+            <button onClick={fetchDonors} className="bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl font-black">
+                {loading ? <Loader2 className="animate-spin" /> : <Search />}
+            </button>
+        </div>
 
-            {/* Radius & Location Row */}
-            <div className="flex gap-2 w-full">
-              <div className="relative flex-1 group">
-                <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none z-10" size={18} />
-                <select 
-                   value={radius} 
-                   onChange={(e) => setRadius(e.target.value)} 
-                   className="w-full pl-10 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium appearance-none text-[16px] sm:text-sm focus:border-blue-300 transition-all truncate"
-                   style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                >
-                  <option value="10">10 KM</option>
-                  <option value="20">20 KM</option>
-                  <option value="50">50 KM</option>
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none border-l pl-2 border-gray-200">
-                   <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-gray-400"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {currentDonors.map((donor) => {
+            const rank = getDonorRank(donor.points || 0);
+            const receiverCoords = session?.user?.location?.coordinates;
+            const donorCoords = donor.location?.coordinates;
+            let distance = null;
+
+            if (receiverCoords && donorCoords) {
+                distance = calculateDistance(
+                    receiverCoords[1], receiverCoords[0],
+                    donorCoords[1], donorCoords[0]
+                ).toFixed(1);
+            }
+
+            return (
+              <div key={donor._id} className="bg-white border p-6 rounded-[2rem] shadow-xl border-red-200 transition-all flex flex-col">
+                <div className="flex justify-between items-center mb-6">
+                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-black uppercase tracking-tighter ${donor.isAvailable ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                    <Activity size={14} className={donor.isAvailable ? 'animate-pulse' : ''} />
+                    {donor.isAvailable ? 'Ready' : 'On Break'}
+                  </div>
+                  <div style={{ background: rank.bg, color: rank.color }} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase border ${rank.border}`}>
+                    {rank.icon} {rank.name}
+                  </div>
                 </div>
+
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center text-white text-xl font-black">
+                    {donor.bloodGroup}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-black text-slate-900 uppercase truncate">{donor.username}</h3>
+                    <div className="flex items-center gap-1 text-slate-600 text-sm">
+                      <MapPin size={12} /> {donor.city}
+                      <div className="w-1 h-1 rounded-full bg-slate-600" />
+                      <Globe size={12} /> {donor.area}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                    {distance ? (
+                        <div className="flex items-center gap-2 text-blue-600 font-black text-sm bg-blue-100 p-3 rounded-xl border border-blue-100">
+                            <Navigation size={14} fill="currentColor" />
+                            {distance} KM away
+                        </div>
+                    ) : (
+                        <div className="text-[10px] text-slate-400 italic bg-slate-50 p-2 rounded-lg text-center">
+                            {session ? "Location missing" : "Login for distance"}
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-6 text-center">
+                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <p className="text-[12px] uppercase font-bold text-slate-600">Phone</p>
+                        <div className="flex items-center justify-center gap-1">
+                          <Phone size={14} />
+                          <p className="text-sm font-black text-slate-600">{donor.phoneNumber || "-"}</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <p className="text-[12px] uppercase font-bold text-slate-600">Benefit</p>
+                        <p className="text-sm font-black text-red-600">{rank.bonus}</p>
+                    </div>
+                </div>
+
+                {session ? (
+                  <a href={donor.isAvailable ? `tel:${donor.phoneNumber}` : "#"} className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 ${donor.isAvailable ? 'bg-slate-900 text-white hover:bg-red-600 shadow-lg transition-all' : 'bg-slate-300 text-slate-600 cursor-not-allowed'}`}>
+                    <Phone size={14} /> {donor.isAvailable ? 'Contact Donor' : 'Unavailable'}
+                  </a>
+                ) : (
+                  <Link href="/login" className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs text-center flex items-center justify-center gap-2">
+                    <Lock size={14} /> Login to Call
+                  </Link>
+                )}
               </div>
-              <button 
-                onClick={getBrowserLocation} 
-                className={`p-2.5 rounded-xl border transition-all flex-shrink-0 ${userLocation ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-inner' : 'bg-gray-50 border-gray-200 text-gray-400'}`}
-              >
-                <Navigation size={20} fill={userLocation ? "currentColor" : "none"} />
-              </button>
+            );
+          })}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="mt-16 flex justify-center items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-3 rounded-xl border border-slate-200 bg-white disabled:opacity-30 transition-all hover:bg-slate-50"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <div className="flex gap-2">
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`w-10 h-10 rounded-xl font-bold transition-all ${
+                    currentPage === i + 1 
+                      ? "bg-slate-900 text-white scale-110" 
+                      : "bg-white text-slate-400 border border-slate-200 hover:border-slate-400"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
             </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-3 rounded-xl border border-slate-200 bg-white disabled:opacity-30 transition-all hover:bg-slate-50"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
-          
-          <button 
-            onClick={fetchDonors} 
-            className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition-all text-sm shadow-md shadow-red-100 flex-shrink-0"
-          >
-            <SearchIcon size={18} /> Search Donors
-          </button>
-        </div>
-      </div>
+        )}
 
-      {/* Content Area */}
-      <div className="flex flex-1 overflow-hidden relative w-full">
-        {/* Sidebar */}
-        <div className={`w-full md:w-96 border-r overflow-y-auto bg-gray-50 p-4 space-y-4 transition-all duration-300 ${viewMode === 'map' ? 'hidden md:block' : 'block'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              {loading ? "Searching..." : `Results: ${donors.length}`}
-            </p>
-            <div className="hidden md:flex bg-gray-200 rounded-lg p-1">
-               <button onClick={() => setViewMode("list")} className={`px-3 py-1 rounded-md text-[10px] font-black ${viewMode === 'list' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>List</button>
-               <button onClick={() => setViewMode("map")} className={`px-3 py-1 rounded-md text-[10px] font-black ${viewMode === 'map' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>Map</button>
-            </div>
+        {!loading && donors.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-[3rem] border border-slate-100 shadow-sm mt-10">
+            <p className="text-slate-400 font-bold">No donors found for this criteria.</p>
           </div>
-
-          {donors.map((donor) => (
-            <div key={donor._id} className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 mb-3 hover:border-red-200 transition-colors">
-              <div className="flex justify-between items-start mb-4">
-                <div className="bg-red-50 px-3 py-1 rounded-xl text-red-600 font-black text-lg">{donor.bloodGroup}</div>
-                <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded-lg font-black uppercase">Active</span>
-              </div>
-              <h4 className="font-black text-gray-800 text-lg leading-tight">{donor.username}</h4>
-              <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1">
-                <MapPin size={12} className="text-red-400" /> {donor.area}, {donor.city}
-              </p>
-              <div className="mt-5 flex gap-2">
-                <a href={`tel:${donor.phoneNumber}`} className="flex-1 bg-gray-900 text-white text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2 active:bg-black">
-                  <Phone size={14} /> Call
-                </a>
-                <Link href={`/donors/${donor._id}`} className="flex-1 bg-gray-100 text-gray-700 text-[10px] uppercase tracking-widest py-3 rounded-xl font-black flex items-center justify-center gap-2 active:bg-gray-200">
-                  <User size={14} /> Profile
-                </Link>
-              </div>
-            </div>
-          ))}
-          <div className="h-24 md:hidden" /> {/* Extra spacing for mobile toggle */}
-        </div>
-
-        {/* Map */}
-        <div className={`flex-1 relative h-full w-full ${viewMode === 'list' ? 'hidden md:block' : 'block'}`}>
-            <DonorMap donors={donors} center={dynamicCenter} />
-        </div>
-
-        {/* Mobile Toggle Button */}
-        <div className="md:hidden fixed bottom-6 left-0 right-0 flex justify-center z-[9999] pointer-events-none px-6">
-          <button 
-            onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-            className="pointer-events-auto bg-red-600 text-white w-full max-w-xs py-4 rounded-full shadow-2xl flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-wider active:scale-95 transition-all border-4 border-white"
-          >
-            {viewMode === 'list' ? (
-              <><MapIcon size={20}/> Show Map View</>
-            ) : (
-              <><LayoutList size={20}/> Show List View</>
-            )}
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
 }
+

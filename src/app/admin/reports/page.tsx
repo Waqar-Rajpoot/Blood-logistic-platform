@@ -61,7 +61,7 @@ export default function AdminReports() {
     const dateFile = new Date().toLocaleDateString().replace(/\//g, '-');
 
     // 1. Header & Branding
-    doc.setFillColor(220, 38, 38); // Red Brand Color
+    doc.setFillColor(220, 38, 38);
     doc.rect(0, 0, 210, 40, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
@@ -189,7 +189,7 @@ export default function AdminReports() {
           <KPICard title="Total Donors" value={data.stats.totalDonors} icon={<Users />} color="red" />
           <KPICard title="Total Receivers" value={data.stats.totalReceivers} icon={<Users />} color="blue" />
           <KPICard title="Pending Requests" value={data.stats.pendingRequests} icon={<Clock />} color="amber" />
-          <KPICard title="Success Rate" value={`${data.stats.fulfillmentRate}%`} icon={<CheckCircle2 />} color="emerald" />
+          <KPICard title="Success Rate" value={`${data.stats.fulfillmentRate}`} icon={<CheckCircle2 />} color="emerald" />
         </div>
 
         {/* Main Charts Grid */}
@@ -228,7 +228,7 @@ export default function AdminReports() {
               <div>
                 <p className="text-sm text-[#dc2626] font-bold">Donors: {data.stats.totalDonors}</p>
                 <p className="text-sm text-[#3b82f6] font-bold">Receivers: {data.stats.totalReceivers}</p>
-                <p className="text-sm text-[#f8bd26] font-bold">Pending Requests: {data.stats.pendingRequests}</p>
+                <p className="text-sm text-[#aa8017] font-bold">Pending Requests: {data.stats.pendingRequests}</p>
               </div>
           </div>
         </div>
