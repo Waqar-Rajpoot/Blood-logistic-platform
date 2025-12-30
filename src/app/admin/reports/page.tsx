@@ -105,7 +105,7 @@ export default function AdminReports() {
         item.totalUnits,
         item.totalUnits < 5 ? "LOW STOCK" : "STABLE"
       ]),
-      headStyles: { fillColor: [31, 41, 55] }, // Slate gray
+      headStyles: { fillColor: [31, 41, 55] },
       columnStyles: {
         2: { fontStyle: 'bold' }
       },
@@ -188,7 +188,7 @@ export default function AdminReports() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard title="Total Donors" value={data.stats.totalDonors} icon={<Users />} color="red" />
           <KPICard title="Total Receivers" value={data.stats.totalReceivers} icon={<Users />} color="blue" />
-          <KPICard title="Pending" value={data.stats.pendingRequests} icon={<Clock />} color="amber" />
+          <KPICard title="Pending Requests" value={data.stats.pendingRequests} icon={<Clock />} color="amber" />
           <KPICard title="Success Rate" value={`${data.stats.fulfillmentRate}%`} icon={<CheckCircle2 />} color="emerald" />
         </div>
 
@@ -216,15 +216,20 @@ export default function AdminReports() {
               <Doughnut 
                 options={{ maintainAspectRatio: false, cutout: '70%' }}
                 data={{
-                  labels: ['Donors', 'Receivers'],
+                  labels: ['Donors', 'Receivers', 'Pending Requests'],
                   datasets: [{
-                    data: [data.stats.totalDonors, data.stats.totalReceivers],
-                    backgroundColor: ['#dc2626', '#3b82f6'],
+                    data: [data.stats.totalDonors, data.stats.totalReceivers, data.stats.pendingRequests],
+                    backgroundColor: ['#dc2626', '#3b82f6', '#fbbf24'],
                     borderWidth: 0,
                   }]
                 }}
               />
             </div>
+              <div>
+                <p className="text-sm text-[#dc2626] font-bold">Donors: {data.stats.totalDonors}</p>
+                <p className="text-sm text-[#3b82f6] font-bold">Receivers: {data.stats.totalReceivers}</p>
+                <p className="text-sm text-[#f8bd26] font-bold">Pending Requests: {data.stats.pendingRequests}</p>
+              </div>
           </div>
         </div>
 

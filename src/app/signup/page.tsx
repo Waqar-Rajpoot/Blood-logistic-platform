@@ -360,13 +360,10 @@ export default function Signup() {
           phoneNumber: "",
           city: "",
           area: "",
-          latitude: 30.66, // Default Sahiwal
+          latitude: 30.66,
           longitude: 73.10,
         });
       }
-      toast.success("Account created successfully!", {
-        icon: "🚀",
-      })
       router.push("/login");
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Signup failed");
