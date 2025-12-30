@@ -251,7 +251,7 @@ function SearchContent() {
                     <Phone size={14} /> {donor.isAvailable ? 'Contact Donor' : 'Unavailable'}
                   </a>
                 ) : (
-                  <Link href="/login" className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs text-center flex items-center justify-center gap-2">
+                  <Link href="/login" className="w-full py-4 bg-slate-300 text-slate-600 rounded-2xl font-black text-xs text-center flex items-center justify-center gap-2">
                     <Lock size={14} /> Login to Call
                   </Link>
                 )}
