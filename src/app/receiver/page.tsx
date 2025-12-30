@@ -17,6 +17,7 @@ import {
   Info,
 } from "lucide-react";
 import axios from "axios";
+import ReceiverJourneyManager from "@/components/ReceiverJourneyManager";
 
 export default function ReceiverMainPage() {
   const [loading, setLoading] = useState(true);
@@ -174,37 +175,6 @@ export default function ReceiverMainPage() {
               </div>
             ) : latestRequest ? (
               <div className="relative">
-                {/* Visual Status Step Bar */}
-                <div className="flex justify-between mb-8 relative">
-                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -translate-y-1/2 z-0"></div>
-                  <div
-                    className={`absolute top-1/2 left-0 h-1 bg-red-600 -translate-y-1/2 z-0 transition-all duration-1000`}
-                    style={{
-                      width:
-                        latestRequest.status === "Fulfilled" ? "100%" : "50%",
-                    }}
-                  ></div>
-
-                  {["Posted", "Matching", "Fulfilled"].map((step, idx) => (
-                    <div
-                      key={idx}
-                      className="z-10 bg-white px-2 flex flex-col items-center gap-2"
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full border-4 ${
-                          idx === 0 ||
-                          (idx === 1 && latestRequest.status === "Pending")
-                            ? "border-red-600 bg-white"
-                            : "border-gray-200 bg-white"
-                        }`}
-                      />
-                      <span className="text-[10px] font-black text-gray-400 uppercase">
-                        {step}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
                 <div className="flex flex-col md:flex-row items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 group hover:border-red-100 transition-all">
                   <div className="flex items-center gap-6">
                     <div className="relative">
@@ -217,7 +187,7 @@ export default function ReceiverMainPage() {
                     </div>
                     <div>
                       <p className="font-black text-gray-900 text-xl">
-                        {latestRequest.unitsRequired} Units •{" "}
+                        {latestRequest.unitsRequired} Units •
                         {latestRequest.patientName}
                       </p>
                       <div className="flex items-center gap-4 mt-2">
@@ -226,7 +196,7 @@ export default function ReceiverMainPage() {
                           {latestRequest.city}
                         </span>
                         <span className="text-sm font-bold text-blue-600 flex items-center gap-1">
-                          <Users size={14} />{" "}
+                          <Users size={14} />
                           {latestRequest.potentialDonors?.length || 0} Responses
                         </span>
                       </div>
@@ -343,6 +313,7 @@ export default function ReceiverMainPage() {
           </div>
         </div>
       </div>
+    <ReceiverJourneyManager />
     </div>
   );
 }

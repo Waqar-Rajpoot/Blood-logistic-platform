@@ -1,14 +1,15 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   ClipboardList,
   Trash2,
-  Clock,
   Users,
-  AlertCircle,
   ShieldCheck,
   Phone,
   Loader2,
+  MapPin,
+  Navigation,
+  CheckCircle2,
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -30,6 +31,9 @@ interface PotentialDonor {
   username: string;
   phoneNumber: string;
   bloodGroup: string;
+  location: {
+    coordinates: [number, number];
+  };
 }
 
 interface BloodRequest {
@@ -39,10 +43,34 @@ interface BloodRequest {
   unitsRequired: number;
   hospitalName: string;
   isUrgent: boolean;
-  status: "Pending" | "Fulfilled";
+  status: "Pending" | "Fulfilled"; // Status check
   potentialDonors: PotentialDonor[];
   createdAt: string;
+  location: {
+    coordinates: [number, number];
+  };
 }
+
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return "N/A";
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+  return d < 1 ? `${(d * 1000).toFixed(0)}m` : `${d.toFixed(1)}km`;
+};
 
 export default function MyRequests() {
   const [requests, setRequests] = useState<BloodRequest[]>([]);
@@ -50,7 +78,6 @@ export default function MyRequests() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // State to manage the Shadcn Dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogConfig, setDialogConfig] = useState<{
     title: string;
@@ -59,53 +86,40 @@ export default function MyRequests() {
     variant: "default" | "destructive";
   } | null>(null);
 
-  const fetchMyRequests = async () => {
+  const fetchMyRequests = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get("/api/receiver/my-requests");
-      setRequests(res.data.requests);
+      setRequests(res.data.requests || []);
     } catch (error: any) {
       toast.error(`Failed to load requests: ${error.message}`);
-      setRequests([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Trigger for Verify Dialog
-  const triggerVerifyDialog = (requestId: string, donorId: string) => {
-    setDialogConfig({
-      title: "Verify Donation?",
-      description:
-        "Confirm that you have received blood from this donor. This will mark the request as fulfilled and update the donor's history.",
-      variant: "default",
-      action: () => handleVerifyDonation(requestId, donorId),
-    });
-    setDialogOpen(true);
-  };
-
-  // Trigger for Delete Dialog
-  const triggerDeleteDialog = (id: string) => {
-    setDialogConfig({
-      title: "Delete Request?",
-      description:
-        "Are you sure? This action cannot be undone. This request will be permanently removed from the live feed.",
-      variant: "destructive",
-      action: () => deleteRequest(id),
-    });
-    setDialogOpen(true);
-  };
+  useEffect(() => {
+    fetchMyRequests();
+  }, [fetchMyRequests]);
 
   const handleVerifyDonation = async (requestId: string, donorId: string) => {
     try {
       setVerifyingId(donorId);
       await axios.post("/api/receiver/verify", { requestId, donorId });
+
+      // Update local state immediately for better UX
+      setRequests((prev) =>
+        prev.map((req) =>
+          req._id === requestId ? { ...req, status: "Fulfilled" } : req
+        )
+      );
+
       toast.success("Donation Verified!");
-      fetchMyRequests();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Verification failed");
+      toast.error(`Verification failed: ${error.message}`);
     } finally {
       setVerifyingId(null);
+      setDialogOpen(false);
     }
   };
 
@@ -113,43 +127,64 @@ export default function MyRequests() {
     try {
       setDeletingId(id);
       await axios.delete(`/api/requests/${id}`);
-      toast.success("Request removed successfully");
-      setRequests(requests.filter((req) => req._id !== id));
+      toast.success("Request removed");
+      setRequests((prev) => prev.filter((req) => req._id !== id));
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Delete failed");
+      toast.error(`Failed to delete request: ${error.message}`);
     } finally {
       setDeletingId(null);
+      setDialogOpen(false);
     }
   };
 
-  useEffect(() => {
-    fetchMyRequests();
-  }, []);
+  const triggerVerifyDialog = (requestId: string, donorId: string) => {
+    setDialogConfig({
+      title: "Verify Donation?",
+      description:
+        "Confirm you received blood. This marks the request as fulfilled.",
+      variant: "default",
+      action: () => handleVerifyDonation(requestId, donorId),
+    });
+    setDialogOpen(true);
+  };
+
+  const triggerDeleteDialog = (id: string) => {
+    setDialogConfig({
+      title: "Delete Request?",
+      description:
+        "This will permanently remove the request from the live feed.",
+      variant: "destructive",
+      action: () => deleteRequest(id),
+    });
+    setDialogOpen(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-gray-50 py-10 px-4 text-gray-900">
       <div className="max-w-5xl mx-auto">
-        {/* SHADCN ALERT DIALOG */}
         <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <AlertDialogContent className="rounded-[2rem]">
+          <AlertDialogContent className="rounded-[2rem] bg-white border-none shadow-2xl">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-black">
+              <AlertDialogTitle className="text-2xl font-black text-gray-800">
                 {dialogConfig?.title}
               </AlertDialogTitle>
-              <AlertDialogDescription className="font-medium text-gray-500">
+              <AlertDialogDescription className="font-semibold text-gray-500 text-base">
                 {dialogConfig?.description}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2">
-              <AlertDialogCancel className="rounded-xl font-bold">
+            <AlertDialogFooter className="gap-3 mt-4">
+              <AlertDialogCancel className="rounded-2xl font-bold py-6 border-gray-200">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                onClick={dialogConfig?.action}
-                className={`rounded-xl font-black ${
+                onClick={(e) => {
+                  e.preventDefault();
+                  dialogConfig?.action();
+                }}
+                className={`rounded-2xl py-6 px-8 font-black transition-all ${
                   dialogConfig?.variant === "destructive"
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-green-600 hover:bg-green-700"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-green-600 hover:bg-green-700 text-white"
                 }`}
               >
                 Continue
@@ -158,148 +193,186 @@ export default function MyRequests() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black text-gray-800 flex items-center gap-3">
-              <ClipboardList className="text-red-600" /> My Blood Requests
-            </h1>
-            <p className="text-gray-500 mt-1 font-medium">
-              Manage your posts and verify incoming donors.
-            </p>
-          </div>
+        <div className="mb-10">
+          <h1 className="text-4xl font-black flex items-center gap-3 tracking-tight">
+            <ClipboardList className="text-red-600" size={36} /> My Requests
+          </h1>
+          <p className="text-gray-500 mt-2 font-bold text-lg">
+            Monitor donor responses and verify contributions.
+          </p>
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-gray-400">
-            <Loader2 className="animate-spin text-red-600 mb-4" size={40} />
-            <p className="font-bold animate-pulse">Syncing with database...</p>
+          <div className="flex flex-col items-center justify-center py-32">
+            <Loader2 className="animate-spin text-red-600 mb-4" size={48} />
+            <p className="font-black text-gray-400 text-xl">
+              Loading your requests...
+            </p>
           </div>
         ) : requests.length > 0 ? (
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1 gap-10">
             {requests.map((req) => (
               <div
                 key={req._id}
-                className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md"
+                className="bg-white rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-200 overflow-hidden"
               >
-                {/* Main Content Area */}
-                <div className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="bg-red-600 text-white px-4 py-1.5 rounded-xl font-black text-lg">
+                <div className="p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="bg-red-600 text-white px-5 py-2 rounded-xl font-black text-lg shadow-lg shadow-red-200">
                         {req.bloodGroup}
                       </span>
                       {req.isUrgent && (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg uppercase tracking-wider animate-pulse">
-                          <AlertCircle size={12} /> Emergency
+                        <span className="text-xs font-black text-red-600 bg-red-50 px-3 py-1.5 rounded-xl uppercase border border-red-100 animate-pulse">
+                          Emergency Case
                         </span>
                       )}
-                      <span
-                        className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border ${
-                          req.status === "Fulfilled"
-                            ? "bg-green-50 text-green-600 border-green-100"
-                            : "bg-orange-50 text-orange-600 border-orange-100"
-                        }`}
-                      >
-                        {req.status}
-                      </span>
+                      {req.status === "Fulfilled" && (
+                        <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-xl uppercase border border-green-100 flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Completed
+                        </span>
+                      )}
                     </div>
-                    <h3 className="text-2xl font-black text-gray-800">
-                      {req.patientName}
+                    <h3 className="text-2xl font-black text-gray-800 tracking-tight">
+                      {req.hospitalName}
                     </h3>
-                    <div className="flex items-center gap-4 text-gray-400 text-sm">
-                      <p className="flex items-center gap-1">
-                        <Clock size={14} />{" "}
-                        {new Date(req.createdAt).toLocaleDateString()}
-                      </p>
-                      <p className="flex items-center gap-1 font-bold text-gray-600">
+                    <div className="flex flex-wrap items-center gap-4 text-gray-500 font-bold">
+                      <span className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                        <MapPin size={16} className="text-red-500" />{" "}
+                        {req.patientName}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-lg text-sm">
+                        <Users size={16} className="text-blue-500" />{" "}
                         {req.unitsRequired} Units Required
-                      </p>
+                      </span>
                     </div>
                   </div>
 
                   <button
-                    onClick={() => triggerDeleteDialog(req._id)}
                     disabled={deletingId === req._id}
-                    className="p-4 bg-gray-50 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
+                    onClick={() => triggerDeleteDialog(req._id)}
+                    className="p-5 bg-gray-50 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all shadow-inner"
                   >
                     {deletingId === req._id ? (
-                      <Loader2 className="animate-spin" />
+                      <Loader2 className="animate-spin" size={20} />
                     ) : (
-                      <Trash2 size={24} />
+                      <Trash2 size={20} />
                     )}
                   </button>
                 </div>
 
-                {/* Donor Section */}
-                <div className="bg-gray-50/70 border-t border-gray-100 p-8">
-                  <h4 className="text-sm font-black text-gray-700 uppercase tracking-widest mb-6 flex items-center gap-2">
-                    <Users size={18} className="text-blue-600" /> Responded
+                <div className="bg-gray-50/50 border-t border-gray-100 p-4">
+                  <h4 className="text-sm font-black text-gray-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-3">
+                    <Users size={16} className="text-blue-500" /> Responded
                     Donors ({req.potentialDonors?.length || 0})
                   </h4>
 
-                  {req.potentialDonors?.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {req.potentialDonors.map((donor) => (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {req.potentialDonors?.map((donor) => {
+                      const reqLat = req.location?.coordinates?.[1];
+                      const reqLng = req.location?.coordinates?.[0];
+                      const donorLat = donor.location?.coordinates?.[1];
+                      const donorLng = donor.location?.coordinates?.[0];
+
+                      const distance = calculateDistance(
+                        reqLat,
+                        reqLng,
+                        donorLat,
+                        donorLng
+                      );
+                      const isFulfilled = req.status === "Fulfilled";
+
+                      return (
                         <div
                           key={donor._id}
-                          className="bg-white border border-gray-200 p-5 rounded-[1.5rem] flex items-center justify-between shadow-sm"
+                          className={`bg-white border p-4 rounded-[2.5rem] transition-all ${
+                            isFulfilled
+                              ? "border-green-100 bg-green-50/20 shadow-none"
+                              : "border-gray-200 shadow-md hover:shadow-lg"
+                          }`}
                         >
-                          <div>
-                            <p className="font-bold text-gray-800">
-                              {donor.username}
-                            </p>
-                            <a
-                              href={`tel:${donor.phoneNumber}`}
-                              className="text-sm text-blue-600 font-bold flex items-center gap-1 hover:text-blue-800"
-                            >
-                              <Phone size={12} /> {donor.phoneNumber}
-                            </a>
+                          <div className="flex justify-between items-start mb-6">
+                            <div className="space-y-1">
+                              <p className="font-black text-gray-800 text-xl tracking-tight">
+                                {donor.username}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="bg-blue-50 text-blue-700 text-sm font-black px-3 py-1 rounded-xl flex items-center gap-1.5 border border-blue-100">
+                                  <Navigation
+                                    size={12}
+                                    className="fill-current"
+                                  />{" "}
+                                  {distance} away
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <a
+                                href={`tel:${donor.phoneNumber}`}
+                                className="p-3 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-colors"
+                              >
+                                <Phone size={20} />
+                              </a>
+                              <p>{donor.phoneNumber}</p>
+                            </div>
                           </div>
-                          {req.status === "Pending" && (
+
+                          <div className="flex gap-3">
                             <button
+                              disabled={
+                                isFulfilled || verifyingId === donor._id
+                              }
                               onClick={() =>
                                 triggerVerifyDialog(req._id, donor._id)
                               }
-                              disabled={!!verifyingId}
-                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 disabled:bg-gray-300"
+                              className={`flex-[2] py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 transition-all ${
+                                isFulfilled
+                                  ? "bg-green-100 text-green-600 cursor-not-allowed"
+                                  : "bg-gray-900 text-white hover:bg-black hover:scale-[1.02] active:scale-95 shadow-lg shadow-gray-200"
+                              }`}
                             >
                               {verifyingId === donor._id ? (
-                                <Loader2 className="animate-spin" size={14} />
+                                <Loader2 className="animate-spin" size={18} />
+                              ) : isFulfilled ? (
+                                <CheckCircle2 size={18} />
                               ) : (
-                                <ShieldCheck size={14} />
+                                <ShieldCheck size={18} />
                               )}
                               {verifyingId === donor._id
                                 ? "Processing..."
-                                : "Verify"}
+                                : isFulfilled
+                                ? "Verified"
+                                : "Verify Donation"}
                             </button>
-                          )}
+
+                            {!isFulfilled && (
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&origin=${reqLat},${reqLng}&destination=${donorLat},${donorLng}&travelmode=driving`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 transition-all"
+                              >
+                                <MapPin size={18} /> Track
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-[2rem] bg-white/50 italic text-gray-400">
-                      Waiting for donors...
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center bg-white p-20 rounded-[3rem] shadow-sm border border-gray-100">
-            <div className="bg-red-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
-              <ClipboardList size={48} />
-            </div>
-            <h2 className="text-2xl font-black text-gray-800">
-              No Active Posts
+          <div className="text-center py-32 bg-white rounded-[4rem] border-2 border-dashed border-gray-200">
+            <ClipboardList className="mx-auto text-gray-200 mb-6" size={80} />
+            <h2 className="text-3xl font-black text-gray-800">
+              No active requests found.
             </h2>
-            <button
-              onClick={() => (window.location.href = "/receiver/request")}
-              className="mt-8 bg-red-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg"
-            >
-              Post Request Now
-            </button>
+            <p className="text-gray-500 mt-3 font-bold text-lg">
+              Your blood requests will appear here once posted.
+            </p>
           </div>
         )}
       </div>

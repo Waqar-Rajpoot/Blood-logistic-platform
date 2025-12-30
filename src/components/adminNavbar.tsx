@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { 
   LayoutDashboard, Users, ClipboardList, LogOut, 
-  ShieldCheck, Menu, X, FileBarChart, UserCheck 
+  ShieldCheck, Menu, X, FileBarChart, UserCheck, 
+  Database
 } from "lucide-react";
 
 export default function AdminNavbar() {
@@ -19,6 +20,7 @@ export default function AdminNavbar() {
     { name: "User Management", href: "/admin/users", icon: <Users size={20} /> },
     { name: "Verifications", href: "/admin/verifications", icon: <UserCheck size={20} /> },
     { name: "Request Logs", href: "/admin/requests", icon: <ClipboardList size={20} /> },
+    { name: "Inventory", href: "/admin/inventory", icon: <Database size={20} /> },
     { name: "Analytics Reports", href: "/admin/reports", icon: <FileBarChart size={20} /> },
   ];
 

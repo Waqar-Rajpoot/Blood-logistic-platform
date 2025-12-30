@@ -86,7 +86,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-8 pt-8 bg-gray-200">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 pt-8 bg-gray-100">
         {/* Welcome Header */}
         <div className="mb-10">
           <h2 className="text-4xl font-black text-gray-900 tracking-tighter">System Overview</h2>

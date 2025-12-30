@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import InventoryAnalytics from "@/components/admin/InventoryAnalytics";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,7 +19,7 @@ import {
 } from 'chart.js';
 import { 
   Users, Clock, Activity,
-  Download, CheckCircle2, Loader2, ChevronDown, Calendar
+  Download, CheckCircle2, Loader2, ChevronDown, FileText
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,18 +28,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// --- IMPORTANT: Registering ChartJS Components to fix "category scale" error ---
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
+  CategoryScale, LinearScale, BarElement, ArcElement, 
+  PointElement, LineElement, Title, Tooltip, Legend, Filler
 );
 
 export default function AdminReports() {
@@ -60,53 +52,94 @@ export default function AdminReports() {
     fetchData();
   }, []);
 
-  // --- PDF Generation Logic ---
+  // --- COMPREHENSIVE PDF GENERATION ---
   const handleDownload = (type: "Daily" | "Weekly" | "Monthly") => {
     if (!data) return;
-
-    const doc = new jsPDF();
-    const dateStr = new Date().toLocaleDateString();
-
-    // Title
-    doc.setFontSize(20);
-    doc.setTextColor(220, 38, 38); // Red color
-    doc.text(`Blood Donation ${type} Report`, 14, 20);
     
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${dateStr}`, 14, 28);
+    const doc = new jsPDF();
+    const timestamp = new Date().toLocaleString();
+    const dateFile = new Date().toLocaleDateString().replace(/\//g, '-');
 
-    // KPI Table
+    // 1. Header & Branding
+    doc.setFillColor(220, 38, 38); // Red Brand Color
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("BLOOD BANK MANAGEMENT SYSTEM", 14, 20);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${type.toUpperCase()} ANALYTICS REPORT`, 14, 30);
+
+    // 2. Report Metadata
+    doc.setTextColor(100);
+    doc.setFontSize(10);
+    doc.text(`Report Generated: ${timestamp}`, 14, 50);
+    doc.text(`Status: Official Record`, 14, 55);
+
+    // 3. KPI Summary Table
+    doc.setTextColor(0);
+    doc.setFontSize(14);
+    doc.text("Executive Summary", 14, 70);
     autoTable(doc, {
-      startY: 35,
-      head: [['Metric', 'Statistics']],
+      startY: 75,
+      head: [['Metric Description', 'Value']],
       body: [
         ['Total Registered Donors', data.stats.totalDonors],
         ['Total Registered Receivers', data.stats.totalReceivers],
-        ['Pending Requests', data.stats.pendingRequests],
-        ['Request Fulfillment Rate', data.stats.fulfillmentRate],
+        ['Total Pending Requests', data.stats.pendingRequests],
+        ['Request Fulfillment Rate', `${data.stats.fulfillmentRate}%`],
       ],
-      theme: 'striped',
-      headStyles: { fillColor: [220, 38, 38] }
+      headStyles: { fillColor: [220, 38, 38] },
+      theme: 'striped'
     });
 
-    // Detailed Inventory vs Requests Table
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("Blood Group Analysis (Supply vs Demand)", 14, (doc as any).lastAutoTable.finalY + 15);
-
+    // 4. Inventory Storage Table
+    const finalY1 = (doc as any).lastAutoTable.finalY;
+    doc.text("Physical Inventory Storage (Units)", 14, finalY1 + 15);
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 20,
-      head: [['Blood Group', 'Available Donors (Supply)', 'Blood Requests (Demand)']],
+      startY: finalY1 + 20,
+      head: [['Blood Group', 'Units in Vault', 'Status']],
+      body: data.inventory.map((item: any) => [
+        item._id,
+        item.totalUnits,
+        item.totalUnits < 5 ? "LOW STOCK" : "STABLE"
+      ]),
+      headStyles: { fillColor: [31, 41, 55] }, // Slate gray
+      columnStyles: {
+        2: { fontStyle: 'bold' }
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 2 && data.cell.text[0] === 'LOW STOCK') {
+            data.cell.styles.textColor = [220, 38, 38];
+        }
+      }
+    });
+
+    // 5. Supply vs Demand Table
+    const finalY2 = (doc as any).lastAutoTable.finalY;
+    doc.text("Supply vs Demand Analysis", 14, finalY2 + 15);
+    autoTable(doc, {
+      startY: finalY2 + 20,
+      head: [['Blood Group', 'Available Donors', 'Active Requests']],
       body: data.inventory.map((item: any, index: number) => [
         item._id,
         item.totalUnits,
-        data.requests[index].totalUnits
+        data.requests[index]?.totalUnits || 0
       ]),
-      headStyles: { fillColor: [59, 130, 246] }
+      headStyles: { fillColor: [37, 99, 235] }, // Blue
     });
 
-    doc.save(`Blood_Bank_${type}_Report_${dateStr.replace(/\//g, '-')}.pdf`);
+    // 6. Footer
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Page ${i} of ${pageCount} - Confidential Admin Document`, 105, 290, { align: "center" });
+    }
+
+    doc.save(`Full_Blood_Report_${type}_${dateFile}.pdf`);
   };
 
   if (loading) return (
@@ -116,17 +149,16 @@ export default function AdminReports() {
     </div>
   );
 
-  // Setup data for Charts
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   const inventoryData = data.inventory.map((i: any) => i.totalUnits);
   const requestData = data.requests.map((r: any) => r.totalUnits);
 
   return (
     <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-sans text-slate-900">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+        {/* Header Section */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
               <Activity className="text-red-600" size={32} /> Admin Insights
@@ -136,71 +168,50 @@ export default function AdminReports() {
 
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-red-200">
-              <Download size={18} /> Download Report <ChevronDown size={16} />
+              <Download size={18} /> Download Full Report <ChevronDown size={16} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48 rounded-xl p-2 font-semibold bg-white border shadow-xl">
+            <DropdownMenuContent className="w-56 rounded-xl p-2 font-semibold bg-white border shadow-xl">
               <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleDownload('Daily')}>
-                <Calendar size={14}/> Daily Report
+                <FileText size={16}/> Daily Audit PDF
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleDownload('Weekly')}>
-                <Calendar size={14}/> Weekly Report
+                <FileText size={16}/> Weekly Summary PDF
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => handleDownload('Monthly')}>
-                <Calendar size={14}/> Monthly Report
+                <FileText size={16}/> Monthly Full Record PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
 
-        {/* KPI Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard title="Total Donors" value={data.stats.totalDonors} icon={<Users />} color="red" />
           <KPICard title="Total Receivers" value={data.stats.totalReceivers} icon={<Users />} color="blue" />
           <KPICard title="Pending" value={data.stats.pendingRequests} icon={<Clock />} color="amber" />
-          <KPICard title="Success Rate" value={data.stats.fulfillmentRate} icon={<CheckCircle2 />} color="emerald" />
+          <KPICard title="Success Rate" value={`${data.stats.fulfillmentRate}%`} icon={<CheckCircle2 />} color="emerald" />
         </div>
 
         {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Comparison Bar Chart: Supply vs Demand */}
           <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-black mb-6">Blood Group Breakdown: Supply vs Demand</h3>
+            <h3 className="text-lg font-black mb-6">Supply vs Demand Breakdown</h3>
             <div className="h-[350px]">
               <Bar 
-                options={{ 
-                  maintainAspectRatio: false, 
-                  responsive: true,
-                  plugins: { legend: { position: 'top' } },
-                  scales: {
-                    x: { grid: { display: false } },
-                    y: { beginAtZero: true }
-                  }
-                }}
+                options={{ maintainAspectRatio: false, responsive: true }}
                 data={{
                   labels: bloodGroups,
                   datasets: [
-                    {
-                      label: 'Available Donors (Supply)',
-                      data: inventoryData,
-                      backgroundColor: '#dc2626',
-                      borderRadius: 6,
-                    },
-                    {
-                      label: 'Requests (Demand)',
-                      data: requestData,
-                      backgroundColor: '#3b82f6',
-                      borderRadius: 6,
-                    }
+                    { label: 'Donors', data: inventoryData, backgroundColor: '#dc2626', borderRadius: 6 },
+                    { label: 'Requests', data: requestData, backgroundColor: '#3b82f6', borderRadius: 6 }
                   ]
                 }} 
               />
             </div>
           </div>
 
-          {/* User Composition */}
           <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-black mb-6">User Base</h3>
+            <h3 className="text-lg font-black mb-6">User Composition</h3>
             <div className="h-[300px]">
               <Doughnut 
                 options={{ maintainAspectRatio: false, cutout: '70%' }}
@@ -214,17 +225,14 @@ export default function AdminReports() {
                 }}
               />
             </div>
-            <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-sm font-bold">
-                    <span>Donors:</span> <span className="text-red-600">{data.stats.totalDonors}</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold">
-                    <span>Receivers:</span> <span className="text-blue-600">{data.stats.totalReceivers}</span>
-                </div>
-            </div>
           </div>
-
         </div>
+
+        {/* Inventory Section */}
+        <div className="w-full">
+            <InventoryAnalytics inventoryData={data.inventory} />
+        </div>
+
       </div>
     </div>
   );
@@ -248,3 +256,4 @@ function KPICard({ title, value, icon, color }: any) {
     </div>
   );
 }
+
