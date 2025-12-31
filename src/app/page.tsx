@@ -18,7 +18,7 @@ export default function HomePage() {
 
   if (!data)
     return (
-      <div className="h-screen flex items-center justify-center text-red-600 animate-pulse font-bold text-3xl">
+      <div className="h-screen flex items-center justify-center text-red-600 animate-pulse font-bold text-xl">
         Synchronizing Data...
       </div>
     );
