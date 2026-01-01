@@ -98,7 +98,7 @@ export default function AboutPage() {
           </div>
 
           <div className="relative">
-            <div className="bg-red-50 rounded-[3rem] p-12 relative z-10 overflow-hidden">
+            <div className="bg-red-100 rounded-[3rem] p-12 relative z-10 overflow-hidden">
               <Heart className="text-red-600 w-full h-auto opacity-20 absolute -right-20 -bottom-20" />
               <h3 className="text-2xl font-black text-red-600 mb-4">
                 Our Tech Vision
@@ -163,7 +163,7 @@ export default function AboutPage() {
             ].map((tech, i) => (
               <div
                 key={i}
-                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm"
+                className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"
               >
                 <tech.icon className="text-red-600 mb-4" size={24} />
                 <h4 className="font-bold text-slate-900 mb-1">{tech.title}</h4>
