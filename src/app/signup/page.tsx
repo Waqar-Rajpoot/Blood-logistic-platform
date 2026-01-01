@@ -91,7 +91,7 @@ export default function Signup() {
   }, [user]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 py-12 px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 py-12">
       <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-xl w-full max-w-3xl border border-gray-100">
         
         <div className="flex flex-col items-center mb-8 text-center">

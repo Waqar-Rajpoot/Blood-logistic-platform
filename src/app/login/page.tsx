@@ -63,7 +63,7 @@ export default function LoginPage() {
   if (status === "loading") return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <div className="bg-red-100 p-3 rounded-full mb-3">

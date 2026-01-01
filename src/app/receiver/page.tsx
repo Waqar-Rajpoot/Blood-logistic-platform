@@ -69,7 +69,7 @@ export default function ReceiverMainPage() {
   }, []);
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
+    <div className="p-6 md:p-10 max-w-8xl mx-auto space-y-10">
       {/* 1. HERO SECTION: URGENT ACTIONS */}
       <div className="bg-gray-900 rounded-[3rem] p-8 md:p-12 text-white flex flex-col md:flex-row justify-between items-center gap-8 shadow-2xl relative overflow-hidden">
         {/* Abstract background glow */}

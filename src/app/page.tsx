@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { 
   ShieldCheck, Zap, Activity, Globe, 
   Crown, Trophy, Medal, Star, ArrowUpRight, 
-  BadgeIcon
+  BadgeIcon,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,7 +155,7 @@ export default function HomePage() {
                 <motion.div 
                   key={donor._id || idx}
                   whileHover={{ y: -5 }}
-                  className="relative group bg-white border border-slate-100 p-8 rounded-[3rem] shadow-xl shadow-slate-200/50"
+                  className="relative group bg-white border border-slate-200 p-8 rounded-[3rem] shadow-xl shadow-slate-200/50"
                 >
                   {/* Floating Rank Icon */}
                   <div 
@@ -192,8 +193,14 @@ export default function HomePage() {
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 font-bold uppercase">
-                      {donor.city}
-                      {donor.area}
+                      <span>
+                        <Globe size={14} className="inline-block mr-1" />
+                        {donor.city}
+                      </span>
+                      <span className="ml-2">
+                        <MapPin size={14} className="inline-block mr-1" />
+                        {donor.area}
+                      </span>
                     </p>
                   </div>
                 </motion.div>

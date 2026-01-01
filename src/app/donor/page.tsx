@@ -218,7 +218,7 @@ export default function DonorDashboard() {
             },
             {
               label: "Status",
-              val: donor?.isAvailable ? "Ready" : "Away",
+              val: donor?.isAvailable ? "Ready" : "Unavailable",
               icon: <Activity />,
               color: "border-emerald-500",
               text: "text-emerald-600",

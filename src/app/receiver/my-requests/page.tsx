@@ -161,7 +161,7 @@ export default function MyRequests() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 text-gray-900">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <AlertDialogContent className="rounded-[2rem] bg-white border-none shadow-2xl">
             <AlertDialogHeader>

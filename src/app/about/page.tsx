@@ -44,7 +44,7 @@ export default function AboutPage() {
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-800 rounded-full filter blur-[100px]" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 text-center">
+        <div className="relative max-w-8xl mx-auto px-6 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
