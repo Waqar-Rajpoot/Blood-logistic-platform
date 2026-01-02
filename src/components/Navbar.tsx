@@ -24,14 +24,14 @@ export default function PublicNavbar() {
         <div className="flex justify-between items-center h-20">
           
           {/* LOGO SECTION */}
-          <Link href="/" className="group flex items-center gap-2 shrink-0">
-            <div className="bg-red-100 p-2 rounded-xl group-hover:scale-110 transition-transform duration-300">
-              <Droplets className="text-red-600" size={26} fill="currentColor" /> 
-            </div>
-            <span className="font-black text-2xl tracking-tighter text-slate-900">
-              Life<span className="text-red-600">Flow</span>
-            </span>
-          </Link>
+            <div className="flex items-center">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="bg-red-600 p-1.5 rounded-lg transition-transform group-hover:scale-110">
+                <Droplets className="text-white" size={26} />
+              </div>
+              <span className="font-black text-3xl text-gray-800 tracking-tight">LifeFlow</span>
+            </Link>
+          </div>
 
           {/* DESKTOP NAV */}
           <div className="hidden md:flex items-center gap-2">
