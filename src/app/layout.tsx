@@ -17,7 +17,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "LifeFlow | Management System",
   description: "Saving lives through technology",
-  <meta name="google-site-verification" content="EV6RljGRrr8-cuXJ19J964MR7MVS0RS09CugbgMufhg" />
+  verification: {
+    google: "EV6RljGRrr8-cuXJ19J964MR7MVS0RS09CugbgMufhg",
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
