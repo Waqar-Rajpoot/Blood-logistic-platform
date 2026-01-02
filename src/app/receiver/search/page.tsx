@@ -158,7 +158,7 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] pb-20">
-      <div className="relative z-10 max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-black text-slate-900 mb-4">Find Your Match</h1>
           <p className="text-slate-500">Helping you find the nearest blood donor in seconds.</p>
@@ -181,7 +181,7 @@ function SearchContent() {
         </div>
 
         {/* Sticky Search Bar with KM Filter */}
-        <div className="sticky top-6 z-50 mb-16 max-w-4xl mx-auto bg-slate-900 p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-3">
+        <div className="sticky top-20 z-50 mb-16 max-w-7xl mx-auto bg-slate-900 p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 

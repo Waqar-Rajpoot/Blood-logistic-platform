@@ -181,7 +181,7 @@ function SearchContent() {
         </div>
 
         {/* Sticky Search Bar with KM Filter */}
-        <div className="sticky top-6 z-50 mb-16 max-w-4xl mx-auto bg-slate-900 p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-3">
+        <div className="sticky top-20 z-50 mb-16 max-w-7xl mx-auto bg-slate-900 p-3 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
