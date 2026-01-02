@@ -138,7 +138,7 @@ export default function VolunteerDonation() {
       {/* ... (rest of the form remains unchanged) ... */}
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
-          <div className="inline-flex p-4 bg-emerald-100 rounded-3xl mb-4 text-emerald-600">
+          <div className="inline-flex p-4 bg-red-100 rounded-3xl mb-4 text-red-600">
             <HeartHandshake size={32} />
           </div>
           <h1 className="text-4xl font-black text-gray-900">
@@ -153,7 +153,7 @@ export default function VolunteerDonation() {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
             <div className="mb-8">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                <Activity size={18} className="text-emerald-500" />
+                <Activity size={18} className="text-red-500" />
                 Hemoglobin (HB) Level{" "}
                 <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
@@ -165,13 +165,13 @@ export default function VolunteerDonation() {
                 onChange={(e) =>
                   setFormData({ ...formData, hbLevel: e.target.value })
                 }
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold text-lg"
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-bold text-lg"
               />
             </div>
 
             <div className="mb-8">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                <Calendar size={18} className="text-emerald-500" />
+                <Calendar size={18} className="text-red-500" />
                 Preferred Donation Date
               </label>
               <input
@@ -182,13 +182,13 @@ export default function VolunteerDonation() {
                 onChange={(e) =>
                   setFormData({ ...formData, preferredDate: e.target.value })
                 }
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-emerald-500 focus:bg-white outline-none transition-all font-bold text-lg"
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-bold text-lg"
               />
             </div>
 
             <div className="mb-4">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                <MessageSquare size={18} className="text-emerald-500" />
+                <MessageSquare size={18} className="text-red-500" />
                 Additional Note
               </label>
               <textarea
@@ -198,7 +198,7 @@ export default function VolunteerDonation() {
                 onChange={(e) =>
                   setFormData({ ...formData, donorNote: e.target.value })
                 }
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium"
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-medium"
               />
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function VolunteerDonation() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-5 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={24} />
