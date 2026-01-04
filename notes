@@ -1,1 +1,20 @@
-volunteer donation 
+Digital "Donor Passport" & QR Code Verification
+Solve the problem of "fake" records or identity verification.
+
+The Tech: QR Code generation and PDF kit.
+
+The Feature: Every donor gets a unique QR code. When they arrive at the hospital, the hospital scans the code to:
+
+Instantly verify their blood group.
+
+Automatically update their "Last Donated" date in your database.
+
+Issue a digital "Certificate of Appreciation" (PDF).
+
+Why it gets you hired: It demonstrates an understanding of end-to-end user workflows and security/verification.
+
+
+
+
+
+
