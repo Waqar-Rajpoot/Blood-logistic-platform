@@ -19,28 +19,27 @@ export async function POST(request: NextRequest) {
     const userId = await getDatatFromToken(request);
     const { requestId } = await request.json();
 
-    const bloodRequest = await Request.findById(requestId);
-    if (!bloodRequest) {
-      return NextResponse.json({ error: "Request not found" }, { status: 404 });
-    }
+    const updatedRequest = await Request.findOneAndUpdate(
+      { 
+        _id: requestId, 
+      },
+      { 
+        $addToSet: { respondedDonors: userId } 
+      },
+      { new: true }
+    );
 
-    // Prevent duplicate responses
-    if (bloodRequest.potentialDonors.includes(userId)) {
-      return NextResponse.json(
-        { message: "Already responded" },
-        { status: 400 }
-      );
+    if (!updatedRequest) {
+      return NextResponse.json({ error: "Blood request not found" }, { status: 404 });
     }
-
-    // Add donor to the potentialDonors array
-    bloodRequest.potentialDonors.push(userId);
-    await bloodRequest.save();
 
     return NextResponse.json({
-      message: "Response sent to receiver successfully",
+      message: "Your donation response has been recorded!",
       success: true,
     });
+
   } catch (error: any) {
+    console.error("Respond Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

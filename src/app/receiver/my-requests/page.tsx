@@ -10,6 +10,7 @@ import {
   MapPin,
   Navigation,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -31,7 +32,8 @@ interface PotentialDonor {
   username: string;
   phoneNumber: string;
   bloodGroup: string;
-  location: {
+  location?: {
+    // Made optional to prevent crash
     coordinates: [number, number];
   };
 }
@@ -43,8 +45,9 @@ interface BloodRequest {
   unitsRequired: number;
   hospitalName: string;
   isUrgent: boolean;
-  status: "Pending" | "Fulfilled"; // Status check
+  status: "Pending" | "Fulfilled";
   potentialDonors: PotentialDonor[];
+  respondedDonors: PotentialDonor[];
   createdAt: string;
   location: {
     coordinates: [number, number];
@@ -52,12 +55,18 @@ interface BloodRequest {
 }
 
 const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
+  lat1?: number,
+  lon1?: number,
+  lat2?: number,
+  lon2?: number
 ) => {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return "N/A";
+  if (
+    lat1 === undefined ||
+    lon1 === undefined ||
+    lat2 === undefined ||
+    lon2 === undefined
+  )
+    return "N/A";
   const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
@@ -106,14 +115,11 @@ export default function MyRequests() {
     try {
       setVerifyingId(donorId);
       await axios.post("/api/receiver/verify", { requestId, donorId });
-
-      // Update local state immediately for better UX
       setRequests((prev) =>
         prev.map((req) =>
           req._id === requestId ? { ...req, status: "Fulfilled" } : req
         )
       );
-
       toast.success("Donation Verified!");
     } catch (error: any) {
       toast.error(`Verification failed: ${error.message}`);
@@ -243,7 +249,7 @@ export default function MyRequests() {
                       </span>
                       <span className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-lg text-sm">
                         <Users size={16} className="text-blue-500" />{" "}
-                        {req.unitsRequired} Units Required
+                        {req.unitsRequired} Units
                       </span>
                     </div>
                   </div>
@@ -261,43 +267,39 @@ export default function MyRequests() {
                   </button>
                 </div>
 
-                <div className="bg-gray-50/50 border-t border-gray-100 p-4">
-                  <h4 className="text-sm font-black text-gray-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-3">
-                    <Users size={16} className="text-blue-500" /> Responded
-                    Donors ({req.potentialDonors?.length || 0})
+                <div className="bg-gray-50/50 border-t border-gray-100 p-8">
+                  <h4 className="text-sm font-black text-green-600 uppercase tracking-[0.1em] mb-4 flex items-center gap-3">
+                    <CheckCircle2 size={18} /> Active Volunteers (
+                    {req.respondedDonors?.length || 0})
                   </h4>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {req.potentialDonors?.map((donor) => {
-                      const reqLat = req.location?.coordinates?.[1];
-                      const reqLng = req.location?.coordinates?.[0];
-                      const donorLat = donor.location?.coordinates?.[1];
-                      const donorLng = donor.location?.coordinates?.[0];
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {req.respondedDonors?.length > 0 ? (
+                      req.respondedDonors.map((donor) => {
+                        // Added safe navigation here to prevent the 'coordinates' crash
+                        const distance = calculateDistance(
+                          req.location?.coordinates?.[1],
+                          req.location?.coordinates?.[0],
+                          donor?.location?.coordinates?.[1],
+                          donor?.location?.coordinates?.[0]
+                        );
+                        const isFulfilled = req.status === "Fulfilled";
 
-                      const distance = calculateDistance(
-                        reqLat,
-                        reqLng,
-                        donorLat,
-                        donorLng
-                      );
-                      const isFulfilled = req.status === "Fulfilled";
-
-                      return (
-                        <div
-                          key={donor._id}
-                          className={`bg-white border p-4 rounded-[2.5rem] transition-all ${
-                            isFulfilled
-                              ? "border-green-100 bg-green-50/20 shadow-none"
-                              : "border-gray-200 shadow-md hover:shadow-lg"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-6">
-                            <div className="space-y-1">
-                              <p className="font-black text-gray-800 text-xl tracking-tight">
-                                {donor.username}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <span className="bg-blue-50 text-blue-700 text-sm font-black px-3 py-1 rounded-xl flex items-center gap-1.5 border border-blue-100">
+                        return (
+                          <div
+                            key={donor._id}
+                            className={`bg-white border p-6 rounded-[2.5rem] transition-all ${
+                              isFulfilled
+                                ? "border-green-100 bg-green-50/20 shadow-none"
+                                : "border-gray-200 shadow-md"
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-6">
+                              <div className="space-y-1">
+                                <p className="font-black text-gray-800 text-xl tracking-tight">
+                                  {donor.username || "Unknown Donor"}
+                                </p>
+                                <span className="bg-blue-50 text-blue-700 text-xs font-black px-3 py-1 rounded-xl flex items-center gap-1.5 border border-blue-100">
                                   <Navigation
                                     size={12}
                                     className="fill-current"
@@ -305,61 +307,97 @@ export default function MyRequests() {
                                   {distance} away
                                 </span>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1">
+
+                              <div className="flex items-center gap-2"> 
                               <a
                                 href={`tel:${donor.phoneNumber}`}
-                                className="p-3 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-colors"
+                                className="p-4 bg-green-100 text-green-600 rounded-2xl hover:bg-green-600 hover:text-white transition-all shadow-sm"
                               >
-                                <Phone size={20} />
+                                <Phone size={16} />
                               </a>
-                              <p>{donor.phoneNumber}</p>
+                              <p className="text-sm font-bold text-gray-600 flex items-center gap-2">{donor.phoneNumber}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                              <button
+                                disabled={
+                                  isFulfilled || verifyingId === donor._id
+                                }
+                                onClick={() =>
+                                  triggerVerifyDialog(req._id, donor._id)
+                                }
+                                className={`flex-[2] py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 transition-all ${
+                                  isFulfilled
+                                    ? "bg-green-100 text-green-600 cursor-not-allowed"
+                                    : "bg-gray-900 text-white hover:bg-black shadow-lg"
+                                }`}
+                              >
+                                {verifyingId === donor._id ? (
+                                  <Loader2 className="animate-spin" size={18} />
+                                ) : isFulfilled ? (
+                                  <CheckCircle2 size={18} />
+                                ) : (
+                                  <ShieldCheck size={18} />
+                                )}
+                                {isFulfilled ? "Verified" : "Verify Donation"}
+                              </button>
+
+                              {!isFulfilled && donor.location && (
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&origin=${req.location.coordinates[1]},${req.location.coordinates[0]}&destination=${donor.location.coordinates[1]},${donor.location.coordinates[0]}&travelmode=driving`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50"
+                                >
+                                  <MapPin size={18} /> Track
+                                </a>
+                              )}
                             </div>
                           </div>
-
-                          <div className="flex gap-3">
-                            <button
-                              disabled={
-                                isFulfilled || verifyingId === donor._id
-                              }
-                              onClick={() =>
-                                triggerVerifyDialog(req._id, donor._id)
-                              }
-                              className={`flex-[2] py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 transition-all ${
-                                isFulfilled
-                                  ? "bg-green-100 text-green-600 cursor-not-allowed"
-                                  : "bg-gray-900 text-white hover:bg-black hover:scale-[1.02] active:scale-95 shadow-lg shadow-gray-200"
-                              }`}
-                            >
-                              {verifyingId === donor._id ? (
-                                <Loader2 className="animate-spin" size={18} />
-                              ) : isFulfilled ? (
-                                <CheckCircle2 size={18} />
-                              ) : (
-                                <ShieldCheck size={18} />
-                              )}
-                              {verifyingId === donor._id
-                                ? "Processing..."
-                                : isFulfilled
-                                ? "Verified"
-                                : "Verify Donation"}
-                            </button>
-
-                            {!isFulfilled && (
-                              <a
-                                href={`https://www.google.com/maps/dir/?api=1&origin=${reqLat},${reqLng}&destination=${donorLat},${donorLng}&travelmode=driving`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 transition-all"
-                              >
-                                <MapPin size={18} /> Track
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-full py-6 px-8 border-2 border-dashed border-gray-200 rounded-[2rem] text-center">
+                        <p className="text-gray-400 font-bold">
+                          Waiting for donors to respond...
+                        </p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* --- SECTION 2: PENDING INVITES --- */}
+                  {req.potentialDonors?.some(
+                    (p) =>
+                      p && !req.respondedDonors?.some((r) => r?._id === p?._id)
+                  ) && (
+                    <>
+                      <h4 className="text-sm font-black text-gray-400 uppercase tracking-[0.1em] mb-4 flex items-center gap-3 mt-10">
+                        <Clock size={18} /> Awaiting Response (
+                        {req.potentialDonors.length -
+                          (req.respondedDonors?.length || 0)}
+                        )
+                      </h4>
+                      <div className="flex flex-wrap gap-3">
+                        {req.potentialDonors
+                          .filter(
+                            (p) =>
+                              p &&
+                              !req.respondedDonors?.some(
+                                (r) => r?._id === p?._id
+                              )
+                          )
+                          .map((p) => (
+                            <div
+                              key={p._id}
+                              className="bg-gray-100 px-5 py-2 rounded-xl text-sm font-bold text-gray-500 border border-gray-200"
+                            >
+                              {p.username || "Pending"}
+                            </div>
+                          ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
