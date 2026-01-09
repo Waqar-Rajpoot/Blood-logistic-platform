@@ -17,7 +17,7 @@ export const SearchFilters = ({ selectedGroup, onGroupSelect }: SearchFiltersPro
           className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${
             selectedGroup === group || (group === "All" && !selectedGroup)
               ? "bg-red-600 text-white shadow-lg"
-              : "bg-white text-slate-600 border border-slate-200"
+              : "bg-white text-slate-600 border border-slate-500"
           }`}
         >
           {group}

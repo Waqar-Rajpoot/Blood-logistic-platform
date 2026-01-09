@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, MapPin, Loader2, HeartPulse, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, MapPin, Loader2, HeartPulse, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -133,7 +133,6 @@ function SearchContent() {
     }
   };
 
-  // Submit Logic
   const handleSendRequests = async (e: React.FormEvent) => {
     e.preventDefault();
     if (requestData.contactNumber.length < 10) {
@@ -176,12 +175,18 @@ function SearchContent() {
     window.open(url, "_blank");
   };
 
-  // Distance Filtering Logic
+  // Distance Filtering Logic - STRICT RESTRICTION
   const filteredDonors = donors.filter((donor) => {
+    // If no distance filter is set, show everyone
     if (!filters.maxDistance) return true;
+    
+    // If distance filter IS set but user is NOT logged in, ignore the filter (security check)
+    if (!session) return true;
+
     const rCoords = session?.user?.location?.coordinates;
     const dCoords = donor?.location?.coordinates;
     if (!rCoords || !dCoords) return false;
+
     return calculateDistance(rCoords[1], rCoords[0], dCoords[1], dCoords[0]) <= parseInt(filters.maxDistance);
   });
 
@@ -194,17 +199,16 @@ function SearchContent() {
       <div className="relative z-10 max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-2 tracking-tighter">Find Your Match</h1>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-2 tracking-tighter">Find Your <span className="text-red-600">Match</span></h1>
           <p className="text-slate-500 font-medium italic text-sm">Select donors for an emergency broadcast.</p>
         </div>
 
-        {/* Blood Group Filters */}
         <SearchFilters 
           selectedGroup={filters.bloodGroup}
           onGroupSelect={(group) => setFilters({ ...filters, bloodGroup: group })}
         />
 
-        {/* Search Bar */}
+        {/* Search Bar with Login-Restricted Distance Select */}
         <div className="sticky top-20 z-40 mb-12 max-w-5xl mx-auto bg-slate-900 p-2 rounded-2xl shadow-xl flex flex-col md:flex-row gap-2">
           <div className="relative flex-1">
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -216,16 +220,37 @@ function SearchContent() {
               onChange={(e) => setFilters({ ...filters, city: e.target.value })}
             />
           </div>
-          <select
-            className="px-4 py-3 bg-slate-800 border-none rounded-xl text-white font-bold outline-none cursor-pointer text-sm"
-            value={filters.maxDistance}
-            onChange={(e) => setFilters({ ...filters, maxDistance: e.target.value })}
-          >
-            <option value="">Anywhere</option>
-            <option value="10">10 KM</option>
-            <option value="30">30 KM</option>
-            <option value="50">50 KM</option>
-          </select>
+
+          <div className="relative group">
+            {!session && (
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[8px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                LOGIN REQUIRED
+              </div>
+            )}
+            <div className="relative">
+              <select
+                disabled={!session}
+                className={`w-full md:w-48 px-4 py-3 bg-slate-800 border-none rounded-xl text-white font-bold outline-none cursor-pointer text-sm appearance-none transition-all ${
+                  !session ? "opacity-50 cursor-not-allowed grayscale" : "hover:bg-slate-700"
+                }`}
+                value={filters.maxDistance}
+                onChange={(e) => {
+                  if(!session) {
+                    toast.error("Please login to use distance filtering");
+                    return;
+                  }
+                  setFilters({ ...filters, maxDistance: e.target.value });
+                }}
+              >
+                <option value="">{session ? "Any Distance" : "Distance (Locked)"}</option>
+                <option value="10">Within 10 KM</option>
+                <option value="30">Within 30 KM</option>
+                <option value="50">Within 50 KM</option>
+              </select>
+              {!session && <Lock size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-600" />}
+            </div>
+          </div>
+
           <button onClick={fetchDonors} className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-xl font-black transition-colors flex justify-center">
             {loading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
           </button>
@@ -233,27 +258,32 @@ function SearchContent() {
 
         {/* Donor Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {currentDonors.map((donor) => {
-            const rCoords = session?.user?.location?.coordinates;
-            const dCoords = donor.location?.coordinates;
-            const distance = rCoords?.[1] && dCoords?.[1] 
-              ? calculateDistance(rCoords[1], rCoords[0], dCoords[1], dCoords[0]).toFixed(1) 
-              : null;
+          {currentDonors.length > 0 ? (
+            currentDonors.map((donor) => {
+              const rCoords = session?.user?.location?.coordinates;
+              const dCoords = donor.location?.coordinates;
+              const distance = rCoords?.[1] && dCoords?.[1] 
+                ? calculateDistance(rCoords[1], rCoords[0], dCoords[1], dCoords[0]).toFixed(1) 
+                : null;
 
-            return (
-              <DonorCard
-                key={donor._id}
-                donor={donor}
-                isSelected={selectedDonorIds.includes(donor._id)}
-                onToggle={toggleSelection}
-                distance={distance}
-                onOpenMap={openGoogleMaps}
-              />
-            );
-          })}
+              return (
+                <DonorCard
+                  key={donor._id}
+                  donor={donor}
+                  isSelected={selectedDonorIds.includes(donor._id)}
+                  onToggle={toggleSelection}
+                  distance={distance}
+                  onOpenMap={openGoogleMaps}
+                />
+              );
+            })
+          ) : (
+            <div className="col-span-full py-20 text-center">
+               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No donors found matching your criteria</p>
+            </div>
+          )}
         </div>
 
-        {/* Floating Selection Bar */}
         <SelectionBar 
           selectedCount={selectedDonorIds.length}
           bloodGroup={lockedBloodGroup}
@@ -261,7 +291,6 @@ function SearchContent() {
           onOpenModal={() => setIsModalOpen(true)}
         />
 
-        {/* Request Modal */}
         <RequestModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -273,7 +302,6 @@ function SearchContent() {
           bloodGroup={lockedBloodGroup}
         />
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-12 flex justify-center items-center gap-4">
             <button 
