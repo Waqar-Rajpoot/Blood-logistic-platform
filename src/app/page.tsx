@@ -5,7 +5,7 @@ import {
   ShieldCheck, Zap, Activity, Globe, 
   Crown, Trophy, Medal, Star, ArrowUpRight, 
   BadgeIcon,
-  MapPin
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,8 +54,8 @@ export default function HomePage() {
 
   if (!data)
     return (
-      <div className="h-screen flex items-center justify-center text-red-600 animate-pulse font-bold text-lg">
-        Synchronizing Data...
+      <div className="h-[70vh] flex items-center justify-center text-red-600 animate-pulse font-bold text-md">
+        Loading impactful data...
       </div>
     );
 
@@ -237,7 +237,7 @@ export default function HomePage() {
                     desc: "isUrgent: true triggers immediate broadcast notifications to available donors in the specific area.",
                   },
                 ].map((tech, i) => (
-                  <div key={i} className="flex gap-6">
+                  <div key={i} className="flex gap-6 md:flex-row flex-col items-center justify-center md:items-start text-center md:text-left">
                     <div className="bg-red-600/20 p-4 rounded-3xl h-fit">
                       <tech.icon className="text-red-500" size={28} />
                     </div>

@@ -38,7 +38,8 @@ export default function AdminDashboard() {
       const res = await axios.get("/api/admin/stats");
       setStats(res.data);
     } catch (error) {
-      toast.error(`Failed to load dashboard stats: ${error}`);
+      toast.error(`Failed to load dashboard stats`);
+      console.log("Error fetching admin stats:", error);
     } finally {
       setLoading(false);
     }

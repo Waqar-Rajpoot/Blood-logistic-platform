@@ -105,6 +105,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
+      isAvailable: boolean;
       role: string;
       username: string;
       location?: {
@@ -116,6 +117,7 @@ declare module "next-auth" {
 
   interface User {
     id: string;
+    isAvailable: boolean;
     role: string;
     username: string;
     location?: {
@@ -128,6 +130,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
+    isAvailable: boolean;
     role: string;
     location?: {
       type: string;
@@ -178,6 +181,7 @@ export const authOptions: NextAuthOptions = {
             id: user._id.toString(),
             email: user.email,
             username: user.username,
+            isAvailable: user.isAvailable,
             role: user.role,
             location: user.location, // Added this
           };
@@ -192,6 +196,7 @@ export const authOptions: NextAuthOptions = {
       // 2. Transfer location from the user object to the JWT token
       if (user) {
         token.id = user.id;
+        token.isAvailable = user.isAvailable;
         token.role = user.role;
         token.location = user.location; 
       }
@@ -201,6 +206,7 @@ export const authOptions: NextAuthOptions = {
       // 3. Transfer location from the token to the session object
       if (session.user) {
         session.user.id = token.id;
+        session.user.isAvailable = token.isAvailable;
         session.user.role = token.role;
         session.user.location = token.location;
       }

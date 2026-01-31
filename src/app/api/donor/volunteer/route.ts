@@ -30,6 +30,16 @@ export async function POST(req: NextRequest) {
 
         await newVolunteerOffer.save();
 
+        await User.findByIdAndUpdate(userId, {
+            $inc: { 
+                points: 3, 
+                donationsCount: 1 
+            },
+            $set: {
+                isAvailable: false
+            }
+        });
+
         return NextResponse.json({
             success: true,
             message: "Donation offer submitted successfully",

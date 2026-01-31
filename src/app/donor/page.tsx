@@ -67,8 +67,8 @@ interface DonorData {
   bloodGroup: string;
   isAvailable: boolean;
   lastDonationDate: string | null;
-  totalDonations: number;
-  livesSaved: number;
+  donationsCount: number;
+  points: number;
   city: string;
   area: string;
   isVerified: boolean;
@@ -132,7 +132,7 @@ export default function DonorDashboard() {
     ? stages.findIndex((s) => s.key === donation.journeyStatus)
     : -1;
   const isFinalStage = currentStageIndex === stages.length - 1;
-  const rank = getDonorRank(donor?.livesSaved || 0);
+  const rank = getDonorRank(donor?.points || 0);
 
   if (loading)
     return (
@@ -204,14 +204,14 @@ export default function DonorDashboard() {
             },
             {
               label: "Impact Score",
-              val: donor?.totalDonations,
+              val: donor?.points,
               icon: <Zap />,
               color: "border-amber-500",
               text: "text-amber-600",
             },
             {
               label: "Lives Saved",
-              val: donor?.livesSaved,
+              val: donor?.donationsCount,
               icon: <Heart />,
               color: "border-blue-500",
               text: "text-blue-600",
@@ -476,7 +476,7 @@ export default function DonorDashboard() {
                       Progress
                     </span>
                     <span className="text-xl font-black">
-                      {donor?.livesSaved} Lives Saved
+                      {donor?.points} Lives Saved
                     </span>
                   </div>
                   <div className="text-right">
@@ -493,7 +493,7 @@ export default function DonorDashboard() {
                     className="bg-gradient-to-r from-red-500 to-red-800 h-full rounded-lg transition-all duration-1000"
                     style={{
                       width: `${Math.min(
-                        ((donor?.livesSaved || 0) / 20) * 100,
+                        ((donor?.points || 0) / 20) * 100,
                         100
                       )}%`,
                     }}
