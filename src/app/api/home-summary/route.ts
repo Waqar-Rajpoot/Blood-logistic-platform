@@ -50,8 +50,6 @@ export async function GET() {
         .limit(6)
     ]);
 
-    console.log("Inventory: ",inventory)
-
     return NextResponse.json({ 
       stats, 
       urgentRequests, 

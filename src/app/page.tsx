@@ -260,9 +260,9 @@ export default function HomePage() {
                 {data.inventory.map((item: any) => (
                   <div
                     key={item._id}
-                    className="bg-white/5 p-4 rounded-2xl border border-white/5"
+                    className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-1"
                   >
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex justify-between items-center mb-1 flex-col md:items-start ">
                       <span className="text-2xl font-black">
                         {item.bloodGroup}
                       </span>

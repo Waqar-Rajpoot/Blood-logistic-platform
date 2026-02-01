@@ -9,37 +9,33 @@ import {
   Loader2,
   ArrowRight,
   Download,
-  AlertCircle
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { jsPDF } from "jspdf";
-import { useSession } from "next-auth/react";
+import { jsPDF } from "jspdf"; // Import jsPDF
 
 export default function VolunteerDonation() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [token, setToken] = useState("");
-  const { data: session, update } = useSession();
-  
   const [formData, setFormData] = useState({
     hbLevel: "",
     preferredDate: "",
     donorNote: "",
   });
 
-  // Check availability status from session
-  const isDonorAvailable = session?.user?.isAvailable !== false;
-
   // PDF Generation Logic
   const generatePDF = () => {
     const doc = new jsPDF({
       orientation: "portrait",
+
       unit: "mm",
-      format: [100, 150],
+
+      format: [100, 150], // Custom card size
     });
 
-    doc.setFillColor(16, 185, 129); // Emerald-500
+    // Design the PDF
+    doc.setFillColor(16, 185, 129);
     doc.rect(0, 0, 100, 20, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
@@ -60,22 +56,15 @@ export default function VolunteerDonation() {
     doc.line(10, 105, 90, 105);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text("Please present this digital or printed card", 50, 120, { align: "center" });
+    doc.text("Please present this digital or printed card", 50, 120, {
+      align: "center",
+    });
     doc.text("at the blood bank reception.", 50, 125, { align: "center" });
-
     doc.save(`Donation_Token_${token}.pdf`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 1. HARD RESTRICTION CHECK
-    if (!isDonorAvailable) {
-      return toast.error("You are not available. Please update your profile or wait for eligibility.", {
-        duration: 5000,
-        icon: '⚠️',
-      });
-    }
 
     if (!formData.preferredDate) {
       return toast.error("Please select a preferred date");
@@ -84,15 +73,10 @@ export default function VolunteerDonation() {
     try {
       setLoading(true);
       const res = await axios.post("/api/donor/volunteer", formData);
-
       if (res.data.success) {
         setToken(res.data.token);
         setSubmitted(true);
         toast.success("Contribution recorded!");
-        
-        // 2. REFRESH SESSION
-        // This triggers the session callback to fetch the new 'isAvailable: false' status from DB
-        await update(); 
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Submission failed");
@@ -112,7 +96,6 @@ export default function VolunteerDonation() {
           <p className="text-gray-500 font-medium mb-8">
             Your offer to strengthen our blood inventory has been recorded.
           </p>
-
           <div className="bg-emerald-50 p-6 rounded-3xl border-2 border-dashed border-emerald-200 mb-6">
             <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">
               Your Donation Token
@@ -127,13 +110,16 @@ export default function VolunteerDonation() {
           >
             <Download size={20} /> Download Token PDF
           </button>
-
           <button
             onClick={() => (window.location.href = "/donor")}
             className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition-all"
           >
             Back to Dashboard
           </button>
+          <p className="text-red-500 font-medium mt-8">
+            Please download the token and present it at the blood bank
+            reception.
+          </p>
         </div>
       </div>
     );
@@ -141,24 +127,8 @@ export default function VolunteerDonation() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
+      {/* ... (rest of the form remains unchanged) ... */}
       <div className="max-w-2xl mx-auto">
-        
-        {/* 3. AVAILABILITY NOTIFICATION BANNER */}
-        {!isDonorAvailable && (
-          <div className="bg-amber-50 border-2 border-amber-200 p-5 rounded-[2rem] mb-8 flex items-start gap-4 shadow-sm">
-            <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-              <AlertCircle size={24} />
-            </div>
-            <div>
-              <h3 className="font-black text-amber-900">Donor Currently Unavailable</h3>
-              <p className="text-amber-800 text-sm font-medium">
-                Our records show you&apos;ve recently donated or are marked as unavailable. 
-                Please update your profile settings once you are ready to donate again.
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="text-center mb-10">
           <div className="inline-flex p-4 bg-red-100 rounded-3xl mb-4 text-red-600">
             <HeartHandshake size={32} />
@@ -170,25 +140,25 @@ export default function VolunteerDonation() {
             Help us maintain a healthy inventory for future emergencies.
           </p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className={`bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 transition-all ${!isDonorAvailable ? 'opacity-60 grayscale' : ''}`}>
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
             <div className="mb-8">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
                 <Activity size={18} className="text-red-500" />
-                Hemoglobin (HB) Level <span className="text-gray-400 font-normal">(Optional)</span>
+                Hemoglobin (HB) Level{" "}
+                <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
               <input
                 type="number"
                 step="0.1"
-                disabled={!isDonorAvailable}
                 placeholder="e.g. 16.5"
                 value={formData.hbLevel}
-                onChange={(e) => setFormData({ ...formData, hbLevel: e.target.value })}
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-bold text-lg disabled:cursor-not-allowed"
+                onChange={(e) =>
+                  setFormData({ ...formData, hbLevel: e.target.value })
+                }
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-bold text-lg"
               />
             </div>
-
             <div className="mb-8">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
                 <Calendar size={18} className="text-red-500" />
@@ -197,14 +167,14 @@ export default function VolunteerDonation() {
               <input
                 type="date"
                 required
-                disabled={!isDonorAvailable}
                 min={new Date().toISOString().split("T")[0]}
                 value={formData.preferredDate}
-                onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-bold text-lg disabled:cursor-not-allowed"
+                onChange={(e) =>
+                  setFormData({ ...formData, preferredDate: e.target.value })
+                }
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-bold text-lg"
               />
             </div>
-
             <div className="mb-4">
               <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
                 <MessageSquare size={18} className="text-red-500" />
@@ -213,29 +183,24 @@ export default function VolunteerDonation() {
               <textarea
                 placeholder="Any specific time preference or health info..."
                 rows={3}
-                disabled={!isDonorAvailable}
                 value={formData.donorNote}
-                onChange={(e) => setFormData({ ...formData, donorNote: e.target.value })}
-                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-medium disabled:cursor-not-allowed"
+                onChange={(e) =>
+                  setFormData({ ...formData, donorNote: e.target.value })
+                }
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 focus:border-red-500 focus:bg-white outline-none transition-all font-medium"
               />
             </div>
           </div>
-
           <button
             type="submit"
-            // 4. DISABLE BUTTON logic
-            disabled={loading || !isDonorAvailable}
-            className={`w-full py-5 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg
-              ${!isDonorAvailable 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none' 
-                : 'bg-red-600 hover:bg-red-700 text-white shadow-red-100'}`}
+            disabled={loading}
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-5 rounded-[2rem] font-black text-xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={24} />
             ) : (
               <>
-                {!isDonorAvailable ? "Unavailable for Donation" : "Submit Offer"} 
-                <ArrowRight size={20} />
+                Submit Offer <ArrowRight size={20} />
               </>
             )}
           </button>

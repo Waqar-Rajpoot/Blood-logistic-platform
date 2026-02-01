@@ -15,6 +15,10 @@ export async function POST(req: NextRequest) {
         const user = await User.findById(userId);
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+        if (user.isAvailable === false) {
+            return NextResponse.json({ error: "You are currently marked as unavailable to donate." }, { status: 400 });
+        }
+
         // Generate a simple unique token for the appointment
         const donationToken = `VOL-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
