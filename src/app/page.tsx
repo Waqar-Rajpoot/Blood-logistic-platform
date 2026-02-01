@@ -260,13 +260,13 @@ export default function HomePage() {
                 {data.inventory.map((item: any) => (
                   <div
                     key={item._id}
-                    className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-1"
+                    className="bg-white/5 p-4 rounded-2xl border border-white/5"
                   >
-                    <div className="flex justify-between items-center mb-1 flex-col md:items-start ">
-                      <span className="text-2xl font-black">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="lg:text-2xl font-black md:text-lg ">
                         {item.bloodGroup}
                       </span>
-                      <Badge className="bg-emerald-500/20 text-emerald-500 border-none text-[10px]">
+                      <Badge className="bg-emerald-500/20 text-emerald-500 border-none lg:text-[10px] md:text-[8px]">
                         SAFE
                       </Badge>
                     </div>
