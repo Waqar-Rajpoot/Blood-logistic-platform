@@ -1,114 +1,153 @@
 "use client";
+
 import React, { useState } from "react";
-import axios from "axios";
-import { Mail, ArrowLeft, KeyRound, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import Link from "next/link";
+import { toast } from "sonner";
+import axios, { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [isError, setIsError] = useState(false);
-  const [loading, setLoading] = useState(false);
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2, Mail, ArrowLeft, Send, HeartPulse } from "lucide-react";
+import { emailSchema } from "@/schema/emailSchema";
+import { ErrorResponse } from "@/utils/ErrorResponse";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    setIsError(false);
+const ForgotPassword = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+
+  const form = useForm<z.infer<typeof emailSchema>>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof emailSchema>) => {
+    setIsSubmitting(true);
     
     try {
-      const res = await axios.post("/api/users/forgotPassword", { email });
-      setMessage(res.data.message || "Reset link sent! Please check your inbox.");
-      setEmail("");
-    } catch (error: any) {
-      setIsError(true);
-      setMessage(error.response?.data?.error || "Something went wrong. Please try again.");
+      const response = await axios.post("/api/users/forgotPassword", {
+        email: data.email,
+      });
+
+      toast.success(response.data.message);
+      const { username, emailType } = response.data;
+      
+      router.replace(`/verify/${username}?emailType=${emailType}`);
+
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Something went wrong. Please try again.";
+      console.error("Forgot password error:", errorMessage);
+      toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decorative Element */}
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-50 rounded-full blur-3xl opacity-50"></div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Subtle Medical-themed Background Accents */}
+      <div className="absolute top-[-5%] right-[-5%] w-[30%] h-[30%] bg-rose-50 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-5%] left-[-5%] w-[30%] h-[30%] bg-blue-50 rounded-full blur-[100px]" />
 
-      <div className="max-w-md w-full">
-        {/* Back Button */}
-        <Link 
-          href="/login" 
-          className="inline-flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-red-600 transition-colors mb-8 group"
-        >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-          Back to Login
-        </Link>
-
-        <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 md:p-10 relative overflow-hidden">
-          {/* Header */}
-          <div className="mb-8 flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 mb-6 shadow-inner">
-              <KeyRound size={32} />
-            </div>
-            <h2 className="text-3xl font-black text-gray-800 tracking-tighter">Forgot Password?</h2>
-            <p className="text-gray-500 font-medium text-sm mt-2 leading-relaxed">
-              No worries! Enter the email associated with your account and we&apos;ll send a secure reset link.
-            </p>
+      <div className="w-full max-w-md z-10">
+        {/* Header Section */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-600 text-white shadow-lg shadow-rose-200 mb-6 rotate-3">
+            <HeartPulse size={32} />
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                Email Address
-              </label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" size={20} />
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 transition-all font-bold text-gray-800"
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-red-600 hover:bg-black text-white font-black uppercase tracking-[0.2em] text-xs py-5 rounded-2xl transition-all shadow-lg shadow-red-100 active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                "Send Reset Link"
-              )}
-            </button>
-          </form>
-
-          {/* Feedback Messages */}
-          {message && (
-            <div className={`mt-8 p-4 rounded-2xl border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 ${
-              isError 
-              ? "bg-orange-50 border-orange-100 text-orange-800" 
-              : "bg-green-50 border-green-100 text-green-800"
-            }`}>
-              {isError ? <AlertCircle className="shrink-0 mt-0.5" size={18} /> : <CheckCircle2 className="shrink-0 mt-0.5" size={18} />}
-              <p className="text-xs font-bold leading-relaxed">
-                {message}
-              </p>
-            </div>
-          )}
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+            Forgot <span className="text-rose-600">Password?</span>
+          </h2>
+          <p className="text-slate-500 font-medium mt-3 text-sm leading-relaxed">
+            No worries. Enter your registered email and we&apos;ll send <br className="hidden md:block" /> 
+            a secure recovery code to your inbox.
+          </p>
         </div>
 
-        {/* Support Footer */}
-        <p className="text-center mt-8 text-xs font-bold text-gray-400">
-          Remembered your password? <Link href="/login" className="text-red-600 hover:underline pl-1">Sign In</Link>
+        {/* Clean Professional Card */}
+        <div className="bg-white border border-slate-100 p-8 md:p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/60">
+          <Form {...form}>
+            <form
+              className="space-y-6"
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <FormField
+                name="email"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
+                      Registered Email Address
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                        <Input
+                          placeholder="name@example.com"
+                          {...field}
+                          className="pl-12 h-14 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-rose-500 focus:border-rose-500 transition-all"
+                          required
+                          type="email"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-rose-600 text-xs font-medium" />
+                  </FormItem>
+                )}
+              />
+              
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full h-16 rounded-2xl bg-rose-600 text-white font-bold uppercase tracking-wider hover:bg-rose-700 active:scale-[0.98] transition-all shadow-lg shadow-rose-200"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                    <span>SENDING...</span>
+                  </>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Send Recovery Code <Send size={18} />
+                  </span>
+                )}
+              </Button>
+            </form>
+          </Form>
+
+          {/* Footer Navigation */}
+          <div className="mt-8 pt-6 border-t border-slate-50 text-center">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 text-slate-500 text-sm font-semibold hover:text-rose-600 transition-colors group"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+              Back to <span className="underline decoration-rose-200 underline-offset-4">Sign In</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Brand Footer */}
+        <p className="text-center mt-10 text-[11px] font-bold uppercase tracking-[0.3em] text-slate-300">
+          Blood Logistics Platform &copy; 2026
         </p>
       </div>
     </div>
   );
-}
+};
+
+export default ForgotPassword;

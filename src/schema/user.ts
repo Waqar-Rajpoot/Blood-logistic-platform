@@ -46,6 +46,8 @@ export const userRegisterSchema = z
       .max(15, "Phone number is too long"),
     city: z.string().min(2, "City is required").toLowerCase().trim(),
     area: z.string().min(2, "Area is required").trim(),
+    verifyCode: z.string().optional(),
+    verifyCodeExpire: z.date().optional(),
 
     location: z.object({
       type: z.literal("Point").default("Point"),

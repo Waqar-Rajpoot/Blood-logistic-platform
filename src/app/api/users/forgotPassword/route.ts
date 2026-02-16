@@ -1,45 +1,72 @@
+import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 import { connect } from "@/dbConfig/dbConfig";
-import { sendEmail } from "@/helpers/mailer";
-import User from "@/models/userModel";
-import { NextRequest, NextResponse } from "next/server";
+import UserModel from "@/models/userModel";
 
+export async function POST(request: Request) {
+  await connect();
 
-export async function POST(req: NextRequest) {
   try {
-    await connect();
-    const reqBody = await req.json();
-    const { email } = reqBody;
-    console.log(email);
+    const { email } = await request.json();
 
     if (!email) {
-      return NextResponse.json({ error: "Email is required", status: 400 });
-    }
-    const user = await User.findOne({ email });
-    console.log("email is: ", email);
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error: "User does not exist",
-        },
+      return Response.json(
+        { success: false, message: "Email is required" },
         { status: 400 }
       );
     }
-    await sendEmail({ email, emailType: "RESET", userId: user._id });
 
-    return NextResponse.json({
-      message: "Email sent successfully",
-      success: true,
-    });
-  } catch (error: any) {
-    console.log(
-      "Login failed",
-      error.response?.data?.error || "Something went wrong"
+    const user = await UserModel.findOne({ email });
+
+    if (!user) {
+      return Response.json(
+        {
+          success: true,
+          message:
+            "If a user with that email exists, a password reset code has been sent.",
+        },
+        { status: 200 }
+      );
+    }
+
+    const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiryDate = new Date(Date.now() + 5 * 60000);
+
+    user.resetPasswordToken = verifyCode;
+    user.resetPasswordExpire = expiryDate;
+    await user.save();
+    const emailType = "RESET";
+    const username = user.username;
+
+    const emailResponse = await sendVerificationEmail(
+      email,
+      emailType,
+      username,
+      verifyCode
     );
-    return NextResponse.json(
+
+    if (!emailResponse.success) {
+      return Response.json(
+        { success: false, message: emailResponse.message },
+        { status: 500 }
+      );
+    }
+
+    return Response.json(
       {
-        message: "Something went wrong",
+        emailType,
+        username,
+        success: true,
+        message:
+          "If a user with that email exists, a password reset code has been sent.",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error while processing forgot password request", error);
+    return Response.json(
+      {
         success: false,
+        message: "Error while processing forgot password request",
       },
       { status: 500 }
     );

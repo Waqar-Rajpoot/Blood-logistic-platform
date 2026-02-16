@@ -1,4 +1,5 @@
 import { connect } from "@/dbConfig/dbConfig";
+import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 import User from "@/models/userModel";
 import { userRegisterSchema } from "@/schema/user";
 import bcrypt from "bcryptjs";
@@ -34,6 +35,10 @@ export async function POST(request: NextRequest) {
       $or: [{ email }, { username }],
     });
 
+    const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiryDate = new Date(Date.now() + 5 * 60000);
+
+
     if (existingUser) {
       return NextResponse.json(
         { error: "User with this email or username already exists" },
@@ -62,6 +67,8 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       city,
       area,
+      verifyCode,
+      verifyCodeExpire: expiryDate,
       location: {
         type: "Point",
         coordinates: coords,
@@ -71,6 +78,22 @@ export async function POST(request: NextRequest) {
     });
 
     const savedUser = await newUser.save();
+
+    const emailType = "VERIFY";
+
+    const emailResponse = await sendVerificationEmail(
+      email,
+      emailType,
+      username,
+      verifyCode
+    );
+
+    if (!emailResponse.success) {
+      return Response.json(
+        { success: false, message: emailResponse.message },
+        { status: 500 }
+      );
+    }
 
     // 6. Return response with contextual message
     return NextResponse.json(
@@ -82,7 +105,8 @@ export async function POST(request: NextRequest) {
         user: {
           id: savedUser._id,
           username: savedUser.username,
-          role: savedUser.role
+          role: savedUser.role,
+          emailType,
         }
       },
       { status: 201 }
@@ -91,7 +115,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Signup Route Error:", error);
 
-    // Handle MongoDB Duplicate Key Error (e.g., email already taken)
     if (error.code === 11000) {
       return NextResponse.json(
         { error: "Username or Email is already registered." }, 

@@ -144,6 +144,16 @@ const userSchema = new mongoose.Schema({
     type: Number, 
     default: 0 
   },
+      verifyCode: {
+      type: String,
+      required: [true, "Verification code is required"],
+    },
+    verifyCodeExpire: {
+      type: Date,
+      required: [true, "Verification code expiration date is required"],
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   // GeoJSON Location Field
   location: {
     type: {
@@ -152,7 +162,7 @@ const userSchema = new mongoose.Schema({
       default: "Point",
     },
     coordinates: {
-      type: [Number], // [Longitude, Latitude]
+      type: [Number],
       required: true,
       validate: {
         validator: function (val: number[]) {
@@ -168,8 +178,6 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// CRITICAL: Geospatial index for the 10km Smart Match
-// This allows MongoDB to run $near and $geoWithin queries
 userSchema.index({ location: "2dsphere" });
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);

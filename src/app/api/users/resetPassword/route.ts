@@ -1,49 +1,72 @@
-import { connect } from "@/dbConfig/dbConfig";
-import User from "@/models/userModel";
-import bcrypt from "bcryptjs";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import {connect} from "@/dbConfig/dbConfig"; // Placeholder for your database connection
+import UserModel from "@/models/userModel"; // Placeholder for your user model
+import { hash } from "bcryptjs";
 
-export async function POST(req: NextRequest) {
-  const reqBody = await req.json();
-  const { token, newPassword } = reqBody;
+export async function POST(request: Request) {
+  await connect(); // Connect to your database
 
   try {
-    if (!token && !newPassword) {
-      return NextResponse.json({
-        error: "All fields are required",
-        status: 400,
-      });
-    }
+    const { username, code, newPassword } = await request.json();
 
-    await connect();
-    const user = await User.findOne({
-      forgotPasswordToken: token,
-      forgotPasswordTokenExpiry: { $gt: Date.now() },
+    console.log("username, code, newPassword", username, code, newPassword);
+
+    // 1. Find the user based on username and verification code
+    const user = await UserModel.findOne({
+      username,
     });
 
+    console.log("user found for password reset", user);
+
+    // 2. Validate the user and code
     if (!user) {
       return NextResponse.json(
         {
-          error: "Invalid or expired token",
+          success: false,
+          message: "Invalid username or verification code.",
         },
         { status: 400 }
       );
     }
 
-    // hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    // 3. Check if the code has expired (e.g., 10 minutes)
+    // Here we're using a hypothetical `verifyCodeExpiry` field.
+    const now: Date = new Date();
+    if (!user.resetPasswordExpire || user.resetPasswordExpire < now) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Verification code has expired. Please request a new one.",
+        },
+        { status: 400 }
+      );
+    }
 
+    // 4. Hash the new password before saving it
+    const hashedPassword = await hash(newPassword, 10);
+
+    // 5. Update the user's password and clear the verification code fields
     user.password = hashedPassword;
-    user.forgotPasswordToken = undefined;
-    user.forgotPasswordTokenExpiry = undefined;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
     await user.save();
 
-    return NextResponse.json({
-      message: "Password reset successfully",
-      success: true,
-    });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // 6. Return a success response
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Password has been successfully reset.",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "An error occurred. Please try again later.",
+      },
+      { status: 500 }
+    );
   }
 }
