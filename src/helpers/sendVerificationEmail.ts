@@ -45,7 +45,7 @@ export const sendVerificationEmail = async (
 
         // 5. Send the Mail
         const mailOptions = {
-            from: `"Luminous Food" <${process.env.EMAIL_USER}>`,
+            from: `"Blood Logistics" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: emailType === "VERIFY" ? "Verify your email address" : "Reset your password",
             html: emailHtml,

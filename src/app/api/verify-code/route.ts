@@ -40,13 +40,9 @@ export async function POST(request: Request) {
                     { status: 400 }
                 );
             }
-            // Logic for RESET: We don't change isVerified. 
-            // We just return success so the frontend can show the "New Password" form.
             return Response.json({ success: true, message: "Reset code verified" }, { status: 200 });
         } 
 
-        // 3. Handle Registration (VERIFY) and 2FA Logic
-        // Both usually use 'verifyCode' and 'verifyCodeExpire' fields
         const isMatch = user.verifyCode === code;
         const isNotExpired = new Date(user.verifyCodeExpire) > new Date();
 
