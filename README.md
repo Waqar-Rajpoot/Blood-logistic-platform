@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🩸 Blood Logistic Platform
+
+A real-time full-stack web platform that connects **blood donors with hospitals**, solving the critical problem of blood availability in emergencies. Built with **Next.js 15**, **TypeScript**, **MongoDB**, and **Socket.io** for live communication.
+
+🔗 **Live Demo:** [blood-logistic-platform.vercel.app](https://blood-logistic-platform.vercel.app)
+
+---
+
+## The Problem It Solves
+
+In medical emergencies, hospitals struggle to locate compatible blood donors quickly. This platform bridges that gap by enabling real-time donor-to-hospital connections with live location tracking and instant notifications.
+
+---
+
+## Features
+
+- 🔐 **Authentication** — Secure login/signup with NextAuth.js, JWT, bcrypt, and OTP verification
+- 🗺️ **Live Map** — Interactive donor and hospital location tracking with Leaflet & React Leaflet
+- ⚡ **Real-Time Communication** — Instant donor-hospital messaging via Socket.io WebSockets
+- 📧 **Email Notifications** — Automated alerts using Nodemailer and React Email templates
+- 📊 **Dashboard & Analytics** — Charts and stats via Chart.js and react-chartjs-2
+- 📄 **PDF Reports** — Export donor/hospital reports with jsPDF and jsPDF-autotable
+- 🔒 **Rate Limiting** — API protection via Upstash Redis
+- 🌗 **Dark / Light Mode** — Theme toggle with next-themes
+- 🎞️ **Animations** — Smooth UI transitions with Framer Motion
+- ✅ **Form Validation** — React Hook Form + Zod schema validation
+- 🔔 **Toast Notifications** — Real-time feedback with Sonner and react-hot-toast
+
+---
+
+## Tech Stack
+
+| Category | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router, Turbopack) |
+| Language | TypeScript |
+| Database | MongoDB (Mongoose) |
+| Auth | NextAuth.js v4, JWT, bcrypt |
+| Real-Time | Socket.io (server + client) |
+| Maps | Leaflet, React Leaflet |
+| Email | Nodemailer, React Email |
+| Charts | Chart.js, react-chartjs-2 |
+| Rate Limiting | Upstash Redis |
+| PDF | jsPDF, jsPDF-autotable |
+| Styling | Tailwind CSS v4, Framer Motion |
+| Forms | React Hook Form, Zod |
+| Deployment | Vercel |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- MongoDB URI
+- Upstash Redis credentials
+- SMTP credentials for email
+
+### Installation
+
+```bash
+git clone https://github.com/Waqar-Rajpoot/Blood-logistic-platform.git
+cd Blood-logistic-platform
+npm install
+```
+
+### Environment Variables
+
+Create a `.env.local` file in the root:
+
+```env
+# Database
+MONGODB_URI=your_mongodb_uri
+
+# Auth
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+JWT_SECRET=your_jwt_secret
+
+# Email
+EMAIL_HOST=your_smtp_host
+EMAIL_USER=your_email
+EMAIL_PASS=your_email_password
+
+# Upstash Redis (Rate Limiting)
+UPSTASH_REDIS_REST_URL=your_upstash_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_token
+```
+
+### Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note:** This project uses a custom `server.js` to support Socket.io alongside Next.js. The WebSocket server runs alongside the Next.js app on the same port.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+├── src/
+│   ├── app/              # Next.js App Router pages & API routes
+│   ├── components/       # Reusable UI components
+│   ├── lib/              # DB connection, utilities, helpers
+│   └── models/           # Mongoose data models
+├── emailTemplates/       # React Email templates
+├── public/               # Static assets
+├── server.js             # Custom Node server with Socket.io
+└── ...
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+```bash
+npm run dev      # Start development server with Turbopack
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+> ⚠️ **Important:** Socket.io requires a persistent Node.js server. Vercel's serverless functions do **not** natively support WebSockets. For full real-time functionality in production, consider deploying to **Railway**, **Render**, or a **VPS** instead of Vercel.
+
+---
+
+## Author
+
+**Waqar Rajpoot** — [GitHub](https://github.com/Waqar-Rajpoot) · [Portfolio](https://waqar-softwaredev-portfolio.vercel.app)

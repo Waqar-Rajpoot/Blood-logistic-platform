@@ -92,7 +92,6 @@ export default function Signup() {
       await axios.post("/api/users/signup", finalPayload);
       toast.success("Account created successfully!");
       const emailType = "VERIFY";
-
       router.replace(`/verify/${user.username}?emailType=${emailType}`);
 
     } catch (error: any) {
